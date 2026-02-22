@@ -2,7 +2,7 @@
 
 import { LayoutDashboardIcon, LogOut } from "lucide-react";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -17,7 +17,6 @@ import {
 	SidebarMenuItem,
 	useSidebar,
 } from "@/components/ui/sidebar";
-import { createAuthClient } from "better-auth/react";
 import { Button } from "@/components/ui/button";
 import { useAuth, useProfile } from "@/app/use-profile";
 import { router } from "@/app/router";

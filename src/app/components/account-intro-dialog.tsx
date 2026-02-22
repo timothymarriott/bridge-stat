@@ -11,7 +11,6 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useRef, useState } from "react";
-import { useProfile } from "../use-profile";
 import MinecraftAvatar from "./mc-avatar";
 import { useQuery } from "@tanstack/react-query";
 import { profileQuery } from "../queries";

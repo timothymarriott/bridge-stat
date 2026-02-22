@@ -1,8 +1,8 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { adminLinkRequestsQuery, adminUsersQuery, profileQuery } from "../queries";
+import { adminLinkRequestsQuery, profileQuery } from "../queries";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { AdminUserList, LinkRequestInfo, UserInformation } from "@/worker/types";
+import { LinkRequestInfo, UserInformation } from "@/worker/types";
 import { ColumnDef, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
 import {
 	Table,

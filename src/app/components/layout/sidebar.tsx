@@ -5,10 +5,9 @@ import {
 	SidebarGroup,
 	SidebarHeader,
 	SidebarMenuButton,
-	SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { SidebarUser } from "./sidebar-user";
-import { HomeIcon, LayoutDashboardIcon } from "lucide-react";
+import { HomeIcon } from "lucide-react";
 import { router } from "@/app/router";
 
 export function LayoutSidebar() {

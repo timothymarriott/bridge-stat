@@ -1,4 +1,4 @@
-import { LinkRequest, LinkRequestList, UserProfile } from "@/worker/types";
+import { LinkRequestList, UserProfile } from "@/worker/types";
 import { createAuthClient } from "better-auth/react";
 
 export const profileQuery = {
