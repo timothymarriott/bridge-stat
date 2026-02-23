@@ -3,18 +3,38 @@ import { QueryClient } from "@tanstack/react-query";
 import Layout from "../layout";
 import { Button } from "@/components/ui/button";
 import { router } from "../router";
-import { profileQuery, authQuery } from "../queries";
+import { authQuery, betterAuthQuery } from "../queries";
 
 export const Route = createRootRouteWithContext<{
 	queryClient: QueryClient;
 }>()({
 	beforeLoad: async ({ context }) => {
-		const profile = await context.queryClient.ensureQueryData(profileQuery);
-		const auth = await context.queryClient.ensureQueryData(authQuery);
+		//await context.queryClient.prefetchQuery(authQuery);
+		const [auth, betterAuth] = await Promise.allSettled([
+			context.queryClient.ensureQueryData(betterAuthQuery),
+			context.queryClient.ensureQueryData(authQuery),
+		]);
 
-		return { profile, auth };
+		return { auth, betterAuth };
 	},
 	component: Root,
+	notFoundComponent: (info) => {
+		return (
+			<div className="flex flex-col items-center">
+				<div className="text-red-400 w-full text-center h-full">Not Found</div>
+				<div>{info.routeId}</div>
+				<Button
+					onClick={() => {
+						router.navigate({
+							to: "/",
+						});
+					}}
+				>
+					Return Home
+				</Button>
+			</div>
+		);
+	},
 	errorComponent: (info) => {
 		return (
 			<Layout>

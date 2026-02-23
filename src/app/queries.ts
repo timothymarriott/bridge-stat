@@ -1,15 +1,34 @@
-import { LinkRequestList, UserProfile } from "@/worker/types";
+import { LinkRequestList, UserInformation } from "@/worker/types";
 import { createAuthClient } from "better-auth/react";
 
-export const profileQuery = {
-	queryKey: ["profile"],
-	queryFn: async () => {
-		const res = await fetch("/api/profile", {
+export type AuthInformation =
+	| {
+			isLoggedIn: true;
+			user: UserInformation;
+	  }
+	| {
+			isLoggedIn: false;
+	  };
+
+export const authQuery = {
+	queryKey: ["auth"],
+	queryFn: async (): Promise<AuthInformation> => {
+		const res = await fetch("/api/auth", {
 			credentials: "include",
 		});
 
-		if (!res.ok) return null;
-		return res.json() as Promise<UserProfile>;
+		if (!res.ok)
+			return {
+				isLoggedIn: false,
+			};
+		const user_info = await (res.json() as Promise<UserInformation>);
+
+		const result: AuthInformation = {
+			user: user_info,
+			isLoggedIn: true,
+		};
+
+		return result;
 	},
 };
 
@@ -21,12 +40,12 @@ export const adminUsersQuery = {
 		});
 
 		if (!res.ok) return null;
-		return res.json() as Promise<UserProfile[]>;
+		return res.json() as Promise<UserInformation[]>;
 	},
 };
 
-export const authQuery = {
-	queryKey: ["auth"],
+export const betterAuthQuery = {
+	queryKey: ["betterAuth"],
 	queryFn: async () => {
 		const auth = createAuthClient({
 			baseURL: import.meta.env.PROD

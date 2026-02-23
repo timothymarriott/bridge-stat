@@ -9,7 +9,7 @@ export default function MinecraftAvatar({ uuid }: { uuid: string }) {
 			</AvatarFallback>
 			<AvatarImage
 				className="rounded-sm"
-				src={"https://mc-heads.net/avatar/" + uuid}
+				src={"https://mojang-proxy.timothyrmarriott.workers.dev/avatar/" + uuid}
 			></AvatarImage>
 		</Avatar>
 	);

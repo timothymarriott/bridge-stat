@@ -1,5 +1,6 @@
 import { relations, sql } from "drizzle-orm";
 import { sqliteTable, text, integer, index, int } from "drizzle-orm/sqlite-core";
+import { Team } from "./types";
 
 export const user = sqliteTable("user", {
 	id: text("id").primaryKey(),
@@ -21,6 +22,7 @@ export const user_profiles = sqliteTable("profiles", {
 		.primaryKey()
 		.references(() => user.id, { onDelete: "cascade" }),
 	uuid: text("uuid"),
+	username: text("username"),
 	is_admin: int("is_admin").notNull().default(0),
 	awaiting_link_request: int("awaiting_link_request").notNull().default(0),
 });
@@ -29,6 +31,43 @@ export const link_requests = sqliteTable("link_requests", {
 	id: int("id").primaryKey(),
 	user: text("user").references(() => user.id, { onDelete: "cascade" }),
 	uuid: text("uuid").notNull(),
+});
+
+// export const api_keys = sqliteTable("api_keys", {
+// 	id: int("id").primaryKey(),
+// 	owner: text("owner").references(() => user.id, { onDelete: "cascade" }),
+// 	key: text("key")
+// 		.notNull()
+// 		.$default(() => {
+// 			const buffer = new Uint8Array(32);
+// 			crypto.getRandomValues(buffer);
+
+// 			return btoa(String.fromCharCode(...buffer))
+// 				.replace(/\+/g, "-")
+// 				.replace(/\//g, "_")
+// 				.replace(/=+$/, "");
+// 		})
+// 		.unique(),
+// });
+
+export const matches = sqliteTable("matches", {
+	id: int("id").primaryKey(),
+
+	winner: int("winner").$type<Team>(),
+	red_scores: int("red_scores").default(0),
+	blue_scores: int("blue_scores").default(0),
+});
+
+export const user_performances = sqliteTable("user_performances", {
+	id: int("id").primaryKey(),
+	match: int("match").references(() => matches.id, { onDelete: "cascade" }),
+	user: text("owner").references(() => user.id, { onDelete: "cascade" }),
+
+	team: int("team").$type<Team>(),
+
+	kills: int("kills").default(0),
+	deaths: int("deaths").default(0),
+	scores: int("scores").default(0),
 });
 
 export const session = sqliteTable(

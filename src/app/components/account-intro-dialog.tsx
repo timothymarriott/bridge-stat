@@ -12,24 +12,24 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useRef, useState } from "react";
 import MinecraftAvatar from "./mc-avatar";
-import { useQuery } from "@tanstack/react-query";
-import { profileQuery } from "../queries";
-import { MCProfileResponse } from "@/worker/types";
+import { MCProfileInfo } from "@/worker/types";
+import { useAuth } from "../auth-hooks";
+import { queryClient } from "../router";
+import { authQuery } from "../queries";
 
 export default function AccountIntroDialog() {
-	const profile = useQuery(profileQuery);
+	const auth = useAuth();
 	const [loading, setLoading] = useState<boolean>(false);
 	let show_dialog =
-		profile.data != null &&
-		profile.data != undefined &&
-		profile.data.uuid == null &&
-		profile.data.awaiting_link_request == 0 &&
+		auth.isLoggedIn &&
+		auth.user.uuid == null &&
+		auth.user.awaiting_link_request == 0 &&
 		!loading;
 
 	const usernameInputRef = useRef<HTMLInputElement>(null);
 
 	const [error, setError] = useState<string | null>(null);
-	const [mcprofile, setMcProfile] = useState<MCProfileResponse | null>(null);
+	const [mcprofile, setMcProfile] = useState<MCProfileInfo | null>(null);
 
 	return (
 		<Dialog open={show_dialog}>
@@ -71,8 +71,8 @@ export default function AccountIntroDialog() {
 									setError("Unknown error " + res.status.toString());
 								}
 
-								const data: MCProfileResponse =
-									await (res.json() as Promise<MCProfileResponse>);
+								const data: MCProfileInfo =
+									await (res.json() as Promise<MCProfileInfo>);
 
 								setMcProfile(data);
 
@@ -120,7 +120,7 @@ export default function AccountIntroDialog() {
 											credentials: "include",
 											method: "POST",
 										});
-										await profile.refetch({});
+										await queryClient.refetchQueries(authQuery);
 										setLoading(false);
 									}}
 								>
