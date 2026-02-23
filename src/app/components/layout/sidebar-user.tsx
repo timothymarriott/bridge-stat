@@ -1,7 +1,7 @@
 "use client";
 
 import { LayoutDashboardIcon, LogOut } from "lucide-react";
-import { SiDiscord, SiGithub, SiGoogle } from "@icons-pack/react-simple-icons";
+import { SiDiscord, SiGoogle } from "@icons-pack/react-simple-icons";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import {
 	DropdownMenu,
@@ -147,15 +147,7 @@ export function SidebarUser() {
 							>
 								<SiDiscord /> Discord
 							</DropdownMenuItem>
-							<DropdownMenuItem
-								onClick={() => {
-									better_auth.signIn.social({
-										provider: "github",
-									});
-								}}
-							>
-								<SiGithub /> Github
-							</DropdownMenuItem>
+
 							<DropdownMenuItem
 								onClick={() => {
 									better_auth.signIn.social({
