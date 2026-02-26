@@ -1,5 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import { sqliteTable, text, integer, index, int } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, index, int, real } from "drizzle-orm/sqlite-core";
 import { Team } from "./types";
 
 export const user = sqliteTable("user", {
@@ -10,11 +10,13 @@ export const user = sqliteTable("user", {
 	image: text("image"),
 	createdAt: integer("created_at", { mode: "timestamp_ms" })
 		.default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
-		.notNull(),
+		.notNull()
+		.$type<string>(),
 	updatedAt: integer("updated_at", { mode: "timestamp_ms" })
 		.default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
 		.$onUpdate(() => /* @__PURE__ */ new Date())
-		.notNull(),
+		.notNull()
+		.$type<string>(),
 });
 
 export const user_profiles = sqliteTable("profiles", {
@@ -54,8 +56,15 @@ export const matches = sqliteTable("matches", {
 	id: int("id").primaryKey(),
 
 	winner: int("winner").$type<Team>(),
+	map: text("map"),
 	red_scores: int("red_scores").default(0),
 	blue_scores: int("blue_scores").default(0),
+	duration: real("duration").notNull().default(-1),
+	uploaded_at: int("uploaded_at")
+		.notNull()
+		.$default(() => {
+			return new Date().getTime();
+		}),
 });
 
 export const user_performances = sqliteTable("user_performances", {
@@ -63,25 +72,28 @@ export const user_performances = sqliteTable("user_performances", {
 	match: int("match").references(() => matches.id, { onDelete: "cascade" }),
 	user: text("owner").references(() => user.id, { onDelete: "cascade" }),
 
-	team: int("team").$type<Team>(),
+	team: int("team").notNull().$type<Team>().default(0),
 
-	kills: int("kills").default(0),
-	deaths: int("deaths").default(0),
-	scores: int("scores").default(0),
+	kills: int("kills").notNull().default(0),
+	deaths: int("deaths").notNull().default(0),
+	voids: int("voids").notNull().default(0),
+	scores: int("scores").notNull().default(0),
 });
 
 export const session = sqliteTable(
 	"session",
 	{
 		id: text("id").primaryKey(),
-		expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+		expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull().$type<number>(),
 		token: text("token").notNull().unique(),
 		createdAt: integer("created_at", { mode: "timestamp_ms" })
 			.default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
-			.notNull(),
+			.notNull()
+			.$type<number>(),
 		updatedAt: integer("updated_at", { mode: "timestamp_ms" })
 			.$onUpdate(() => /* @__PURE__ */ new Date())
-			.notNull(),
+			.notNull()
+			.$type<number>(),
 		ipAddress: text("ip_address"),
 		userAgent: text("user_agent"),
 		userId: text("user_id")

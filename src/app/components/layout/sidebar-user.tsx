@@ -18,14 +18,18 @@ import {
 	useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { useBetterAuth, useAuth as useAuth } from "@/app/auth-hooks";
+import { useBetterAuth, useAuth as useAuth, isAuthLoading } from "@/app/auth-hooks";
 import { queryClient, router } from "@/app/router";
 import MinecraftAvatar from "../mc-avatar";
 import { proxy } from "@/lib/utils";
 import { authQuery } from "@/app/queries";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
 
 export function SidebarUser() {
 	const auth = useAuth();
+
+	const is_auth_loading = isAuthLoading();
 
 	const better_auth = useBetterAuth();
 
@@ -34,40 +38,36 @@ export function SidebarUser() {
 	return sidebar.open ? (
 		<SidebarMenu>
 			<SidebarMenuItem>
-				{auth.isLoggedIn ? (
+				{auth.exists ? (
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
 							<SidebarMenuButton
 								size="lg"
 								className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
 							>
-								{auth.user.uuid == null ? (
+								{auth.uuid == null ? (
 									<>
 										<Avatar className="h-8 w-8 rounded-lg">
 											<AvatarImage
-												src={proxy(auth.user.image ?? "")}
-												alt={auth.user.name}
+												src={proxy(auth.image ?? "")}
+												alt={auth.name}
 											/>
 										</Avatar>
 										<div className="grid flex-1 text-left text-sm leading-tight">
 											<span className="truncate font-medium">
-												{auth.user.name}
+												{auth.name}
 											</span>
-											<span className="truncate text-xs">
-												{auth.user.email}
-											</span>
+											<span className="truncate text-xs">{auth.email}</span>
 										</div>
 									</>
 								) : (
 									<>
-										<MinecraftAvatar uuid={auth.user.uuid} />
+										<MinecraftAvatar uuid={auth.uuid} />
 										<div className="grid flex-1 text-left text-sm leading-tight">
 											<span className="truncate font-bold">
-												{auth.user.username ?? auth.user.name}
+												{auth.username ?? auth.name}
 											</span>
-											<span className="truncate text-xs">
-												{auth.user.email}
-											</span>
+											<span className="truncate text-xs">{auth.email}</span>
 										</div>
 									</>
 								)}
@@ -83,21 +83,19 @@ export function SidebarUser() {
 								<div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
 									<Avatar className="h-8 w-8 rounded-lg">
 										<AvatarImage
-											src={proxy(auth.user.image ?? "")}
-											alt={auth.user.name}
+											src={proxy(auth.image ?? "")}
+											alt={auth.name}
 										/>
 									</Avatar>
 									<div className="grid flex-1 text-left text-sm leading-tight">
-										<span className="truncate font-medium">
-											{auth.user.name}
-										</span>
-										<span className="truncate text-xs">{auth.user.email}</span>
+										<span className="truncate font-medium">{auth.name}</span>
+										<span className="truncate text-xs">{auth.email}</span>
 									</div>
 								</div>
 							</DropdownMenuLabel>
 							<DropdownMenuSeparator />
 
-							{(auth.user.is_admin ?? 0 > 0) ? (
+							{(auth.is_admin ?? 0 > 0) ? (
 								<>
 									<DropdownMenuItem
 										onClick={() => {
@@ -130,6 +128,13 @@ export function SidebarUser() {
 							</DropdownMenuItem>
 						</DropdownMenuContent>
 					</DropdownMenu>
+				) : is_auth_loading ? (
+					<Skeleton className="w-full h-12">
+						<Button variant={"secondary"} disabled={true} className="w-full h-12">
+							<Spinner data-icon="inline-start" />
+							Loading...
+						</Button>
+					</Skeleton>
 				) : (
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>

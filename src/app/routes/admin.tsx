@@ -7,11 +7,11 @@ export const Route = createFileRoute("/admin")({
 	beforeLoad: async ({ context }) => {
 		const auth = await context.queryClient.ensureQueryData(authQuery);
 
-		if (!auth.isLoggedIn) {
+		if (!auth.exists) {
 			throw Error("Access Denied");
 		}
 
-		if (auth.user.is_admin == 0) {
+		if (auth.is_admin == 0) {
 			throw Error("Access Denied");
 		}
 

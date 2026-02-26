@@ -7,7 +7,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 	return (
 		<SidebarProvider>
 			<LayoutSidebar />
-			<SidebarInset className="p-2 pl-0">{children}</SidebarInset>
+			<SidebarInset className="p-2 pl-0 h-full">{children}</SidebarInset>
 			<AccountIntroDialog />
 		</SidebarProvider>
 	);

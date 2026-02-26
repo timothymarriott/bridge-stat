@@ -13,7 +13,7 @@ import {
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import MinecraftAvatar from "./mc-avatar";
 import { Button } from "@/components/ui/button";
-import { adminLinkRequestsQuery, adminUsersQuery, authQuery } from "../queries";
+import { adminLinkRequestsQuery, adminUsersQuery, api_client, authQuery } from "../queries";
 import { queryClient } from "../router";
 import { proxy } from "@/lib/utils";
 
@@ -66,9 +66,10 @@ export default function LinkRequestList() {
 					<div className="flex-1 gap-2 flex flex-row w-full size-10 items-center">
 						<Button
 							onClick={async () => {
-								await fetch("/api/admin/link/accept/" + me.user.id, {
-									credentials: "include",
-									method: "POST",
+								await api_client.api.admin.link.accept[":id"].$post({
+									param: {
+										id: me.user.id,
+									},
 								});
 								await link_requests.refetch();
 								await queryClient.refetchQueries(adminUsersQuery);
@@ -79,9 +80,10 @@ export default function LinkRequestList() {
 						</Button>
 						<Button
 							onClick={async () => {
-								await fetch("/api/admin/link/deny/" + me.user.id, {
-									credentials: "include",
-									method: "POST",
+								await api_client.api.admin.link.deny[":id"].$post({
+									param: {
+										id: me.user.id,
+									},
 								});
 								await link_requests.refetch();
 								await queryClient.refetchQueries(adminUsersQuery);

@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './app/routes/__root'
 import { Route as AdminRouteImport } from './app/routes/admin'
 import { Route as IndexRouteImport } from './app/routes/index'
+import { Route as PlayerPlayerIdRouteImport } from './app/routes/player/$playerId'
 
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
@@ -22,31 +23,40 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PlayerPlayerIdRoute = PlayerPlayerIdRouteImport.update({
+  id: '/player/$playerId',
+  path: '/player/$playerId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/player/$playerId': typeof PlayerPlayerIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/player/$playerId': typeof PlayerPlayerIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/player/$playerId': typeof PlayerPlayerIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin'
+  fullPaths: '/' | '/admin' | '/player/$playerId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin'
-  id: '__root__' | '/' | '/admin'
+  to: '/' | '/admin' | '/player/$playerId'
+  id: '__root__' | '/' | '/admin' | '/player/$playerId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  PlayerPlayerIdRoute: typeof PlayerPlayerIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -65,12 +75,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/player/$playerId': {
+      id: '/player/$playerId'
+      path: '/player/$playerId'
+      fullPath: '/player/$playerId'
+      preLoaderRoute: typeof PlayerPlayerIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  PlayerPlayerIdRoute: PlayerPlayerIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
