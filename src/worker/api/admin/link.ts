@@ -7,7 +7,6 @@ import { LinkRequestList } from "../../types";
 import { better_auth } from "../auth";
 
 export const link = new Hono<{
-	Bindings: Env;
 	Variables: {
 		user: typeof better_auth.$Infer.Session.user | null;
 		session: typeof better_auth.$Infer.Session.session | null;

@@ -12,21 +12,13 @@ import {
 	GetUserProfileById,
 	GetUsers,
 } from "../requests";
-import {
-	Match,
-	MatchInsertData,
-	MCProfileInfo,
-	OptionalPlayerInformation,
-	PlayerPerformanceInsertData,
-	Team,
-} from "../types";
+import { Match, MatchInsertData, MCProfileInfo, PlayerPerformanceInsertData, Team } from "../types";
 import { db } from "../database";
 import { matches, user_performances } from "../schema";
 import { MAP_NAMES } from "../../lib/data";
 import { RequireAuthInformation } from "..";
 
 export const api = new Hono<{
-	Bindings: Env;
 	Variables: {
 		user: typeof better_auth.$Infer.Session.user | null;
 		session: typeof better_auth.$Infer.Session.session | null;
@@ -97,8 +89,8 @@ export const api = new Hono<{
 		}
 
 		await Promise.all(
-			keys.map(async (i) => {
-				const players = all_players.toSorted((a, b) => {
+			keys.map(async (_) => {
+				const players = all_players.toSorted(() => {
 					if (Math.random() >= 0.5) {
 						return 1;
 					} else {

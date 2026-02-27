@@ -8,12 +8,11 @@ import {
 	SidebarMenuButton,
 } from "@/components/ui/sidebar";
 import { SidebarUser } from "./sidebar-user";
-import { HomeIcon, PlusIcon } from "lucide-react";
+import { HomeIcon } from "lucide-react";
 import { router } from "@/app/router";
 import { OptionalPlayerInformation } from "@/worker/types";
 import { playersQuery } from "@/app/queries";
 import MinecraftAvatar from "../mc-avatar";
-import SubmitMatchDialog from "../submit-match-dialog";
 import { useQueryData } from "@/app/auth-hooks";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";

@@ -31,7 +31,6 @@ export const better_auth = betterAuth({
 });
 
 export const auth = new Hono<{
-	Bindings: Env;
 	Variables: {
 		user: User | null;
 		session: typeof better_auth.$Infer.Session.session | null;

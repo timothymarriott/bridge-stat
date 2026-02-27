@@ -5,7 +5,6 @@ import { OptionalPlayerInformation } from "../types";
 import { TypedResponse } from "hono/types";
 
 export const player = new Hono<{
-	Bindings: Env;
 	Variables: {
 		user: typeof better_auth.$Infer.Session.user | null;
 		session: typeof better_auth.$Infer.Session.session | null;

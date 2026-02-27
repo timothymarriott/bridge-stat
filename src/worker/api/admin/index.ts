@@ -14,7 +14,6 @@ import { db } from "../../database";
 import { matches, user_performances } from "../../schema";
 
 export const admin = new Hono<{
-	Bindings: Env;
 	Variables: {
 		user: typeof better_auth.$Infer.Session.user | null;
 		session: typeof better_auth.$Infer.Session.session | null;

@@ -3,23 +3,10 @@ import { QueryClient } from "@tanstack/react-query";
 import Layout from "../layout";
 import { Button } from "@/components/ui/button";
 import { router } from "../router";
-import { authQuery, betterAuthQuery, playersQuery } from "../queries";
 
 export const Route = createRootRouteWithContext<{
 	queryClient: QueryClient;
 }>()({
-	beforeLoad: async ({ context }) => {
-		/*
-		//await context.queryClient.prefetchQuery(authQuery);
-		const [auth, betterAuth] = await Promise.allSettled([
-			context.queryClient.ensureQueryData(betterAuthQuery),
-			context.queryClient.ensureQueryData(authQuery),
-			//context.queryClient.ensureQueryData(playersQuery),
-		]);
-
-		return { auth, betterAuth };
-		*/
-	},
 	component: Root,
 	notFoundComponent: (info) => {
 		return (

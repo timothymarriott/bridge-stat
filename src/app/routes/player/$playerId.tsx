@@ -3,10 +3,8 @@ import MinecraftAvatar from "@/app/components/mc-avatar";
 import PlayerPerformancesList from "@/app/components/player-performances-list";
 import { matchesQuery } from "@/app/queries";
 import { router } from "@/app/router";
-import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
@@ -22,7 +20,7 @@ export const Route = createFileRoute("/player/$playerId")({
 function User() {
 	const { playerId } = Route.useParams();
 	const res = usePlayerInfo(playerId);
-	const [kdr, setKDR] = useState<number>(1);
+	const [_, setKDR] = useState<number>(1);
 	useEffect(() => {
 		if (res != null && res.exists) {
 			let total_kills = 0;

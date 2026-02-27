@@ -1,4 +1,4 @@
-import { PlayerInformation, Team } from "@/worker/types";
+import { PlayerInformation } from "@/worker/types";
 import { useQueryData } from "../auth-hooks";
 import { matchesQuery, playersQuery } from "../queries";
 import MinecraftAvatar from "./mc-avatar";

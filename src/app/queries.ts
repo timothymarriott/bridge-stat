@@ -6,7 +6,7 @@ import type {
 } from "@/worker/types";
 import { createAuthClient } from "better-auth/react";
 import { hc } from "hono/client";
-import { createQuery, usePlayerInfo } from "./auth-hooks";
+import { createQuery } from "./auth-hooks";
 
 export const api_client = hc<WorkerApp>(
 	import.meta.env.PROD
