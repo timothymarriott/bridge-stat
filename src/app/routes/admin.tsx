@@ -38,7 +38,11 @@ export function Admin() {
 					if (!inputref.current) return;
 					const data: FullMatchInsertData[] = JSON.parse(inputref.current.value);
 					for (const element of data) {
-						await api_client.api.admin.upload.$post(element);
+						await fetch("/api/admin/upload", {
+							credentials: "include",
+							method: "POST",
+							body: JSON.stringify(element),
+						});
 					}
 				}}
 			>

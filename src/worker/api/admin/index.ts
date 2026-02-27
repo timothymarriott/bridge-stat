@@ -22,8 +22,9 @@ export const admin = new Hono<{
 	.use("*", RequireAuthInformation)
 	.use("*", RequireAdmin)
 	.route("/link", link)
-	.post<"/upload", {}, TypedResponse<void>>("/upload", async (c) => {
-		const data: FullMatchInsertData = await c.req.json<FullMatchInsertData>();
+	.post<"/upload">("/upload", async (c) => {
+		const text = await c.req.text();
+		const data: FullMatchInsertData = await JSON.parse(text);
 
 		const users = await GetUsers();
 
@@ -50,6 +51,8 @@ export const admin = new Hono<{
 				await db.insert(user_performances).values(perf_data);
 			}
 		}
+
+		return c.body(null, 200);
 	})
 	.get<"/users", {}, TypedResponse<UserInformation[]>>("/users", async (c) => {
 		return c.json<UserInformation[]>(await GetUsers());
