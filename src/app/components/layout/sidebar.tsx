@@ -64,11 +64,6 @@ export function LayoutSidebar() {
 				>
 					<HomeIcon /> Home
 				</SidebarMenuButton>
-				<SubmitMatchDialog>
-					<SidebarMenuButton>
-						<PlusIcon /> Add Match
-					</SidebarMenuButton>
-				</SubmitMatchDialog>
 				<SidebarUser></SidebarUser>
 			</SidebarFooter>
 		</Sidebar>

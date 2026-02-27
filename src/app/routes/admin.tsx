@@ -1,7 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { authQuery } from "../queries";
+import { api_client, authQuery } from "../queries";
 import LinkRequestList from "../components/link-request-list";
 import UserList from "../components/user-list";
+import { useRef } from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { FullMatchInsertData } from "@/worker/types";
 
 export const Route = createFileRoute("/admin")({
 	beforeLoad: async ({ context }) => {
@@ -22,10 +26,24 @@ export const Route = createFileRoute("/admin")({
 });
 
 export function Admin() {
+	const inputref = useRef<HTMLInputElement>(null);
 	return (
 		<div className="space-y-2">
 			<UserList />
 			<LinkRequestList />
+
+			<Input ref={inputref}></Input>
+			<Button
+				onClick={async () => {
+					if (!inputref.current) return;
+					const data: FullMatchInsertData[] = JSON.parse(inputref.current.value);
+					for (const element of data) {
+						await api_client.api.admin.upload.$post(element);
+					}
+				}}
+			>
+				Upload
+			</Button>
 		</div>
 	);
 }

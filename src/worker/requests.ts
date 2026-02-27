@@ -96,19 +96,19 @@ export async function GetMatches(): Promise<Record<string, Match>> {
 
 	const result: Record<string, Match> = {};
 	for (const match of raw) {
-		if (result[match.match.id] != undefined) {
-			if (match.team == Team.RED && match.user_id != null) {
-				result[match.match.id].red_players.push(match.user_id);
-			}
-			if (match.team == Team.BLUE && match.user_id != null) {
-				result[match.match.id].blue_players.push(match.user_id);
-			}
-		} else {
+		if (result[match.match.id] == undefined) {
 			result[match.match.id] = {
 				...match.match,
 				red_players: [],
 				blue_players: [],
 			};
+		}
+
+		if (match.team == Team.RED && match.user_id != null) {
+			result[match.match.id].red_players.push(match.user_id);
+		}
+		if (match.team == Team.BLUE && match.user_id != null) {
+			result[match.match.id].blue_players.push(match.user_id);
 		}
 	}
 	return result;

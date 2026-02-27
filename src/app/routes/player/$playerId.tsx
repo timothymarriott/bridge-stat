@@ -35,7 +35,7 @@ function User() {
 		}
 	}, [res]);
 	return (
-		<div className="w-full h-full flex flex-col">
+		<div className="w-full h-full flex flex-col space-y-2">
 			{res == null ? (
 				<div className="flex flex-col items-center">
 					<Spinner className="size-16" />
@@ -50,7 +50,7 @@ function User() {
 							</CardTitle>
 						</CardHeader>
 						<CardContent className="text-sm flex flex-row space-x-3 flex-wrap">
-							<div>
+							{/* <div>
 								<span className="font-bold">69</span>
 								<span className="text-accent-foreground/50"> games played</span>
 							</div>
@@ -78,27 +78,18 @@ function User() {
 							<div>
 								<span className="text-accent-foreground/50">kdr </span>
 								<span className="font-bold">{Math.round(kdr * 100) / 100}</span>
-							</div>
+							</div> */}
 						</CardContent>
 					</Card>
 
-					<div className="flex flex-row w-full space-x-2 pt-2 flex-1">
-						<Card className="ring-sidebar-border rounded-lg w-80">
-							<CardHeader>
-								<CardTitle>Performances</CardTitle>
-							</CardHeader>
-							<CardContent>
-								<PlayerPerformancesList player={res} />
-							</CardContent>
-						</Card>
-
-						<Card className="ring-sidebar-border rounded-lg flex-1">
-							<CardHeader>
-								<CardTitle>Info</CardTitle>
-							</CardHeader>
-							<CardContent></CardContent>
-						</Card>
-					</div>
+					<Card className="ring-sidebar-border rounded-lg flex-1">
+						<CardHeader>
+							<CardTitle>Performances</CardTitle>
+						</CardHeader>
+						<CardContent>
+							<PlayerPerformancesList player={res} />
+						</CardContent>
+					</Card>
 				</>
 			) : (
 				<div className="flex flex-col items-center">

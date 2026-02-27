@@ -11,6 +11,25 @@ export type Match = InferSelectModel<typeof matches> & {
 	red_players: string[];
 	blue_players: string[];
 };
+
+export type MatchPlayerInsertData = {
+	username: string;
+	team: Team;
+	deaths: number;
+	scores: number;
+	kills: number;
+	voids: number;
+};
+export type FullMatchInsertData = {
+	duration: number;
+	winner: Team;
+	map: string;
+	red_scores: number;
+	blue_scores: number;
+	red_players: MatchPlayerInsertData[];
+	blue_players: MatchPlayerInsertData[];
+};
+
 export type PlayerPerformanceInsertData = InferInsertModel<typeof user_performances>;
 
 export type UserInformation = UserProfile & User;
@@ -54,15 +73,6 @@ export interface MCProfileInfo {
 	uuid: string;
 	cache: "HIT" | "MISS";
 }
-
-export type MatchSumbitdata = {
-	winner: Team;
-	red_scores: number;
-	blue_scores: number;
-	duration: number;
-	red_players: string[];
-	blue_players: string[];
-};
 
 export enum Team {
 	BLUE = 0,
