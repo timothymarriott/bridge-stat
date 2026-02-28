@@ -9,7 +9,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 		<SidebarProvider>
 			<TooltipProvider>
 				<LayoutSidebar />
-				<SidebarInset className="p-2 pl-0 h-full">{children}</SidebarInset>
+				<SidebarInset className="p-2 pl-0 h-screen">{children}</SidebarInset>
 				<AccountIntroDialog />
 			</TooltipProvider>
 		</SidebarProvider>

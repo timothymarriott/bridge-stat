@@ -33,7 +33,7 @@ export function LayoutSidebar() {
 									key={player.id}
 									onClick={() => {
 										router.navigate({
-											to: "/player/" + player.id,
+											to: "/player/" + player.username,
 										});
 									}}
 									className="font-bold"

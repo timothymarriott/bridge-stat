@@ -5,12 +5,13 @@ import { matchesQuery } from "@/app/queries";
 import { router } from "@/app/router";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/spinner";
 import { Team } from "@/worker/types";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
-export const Route = createFileRoute("/player/$playerId")({
+export const Route = createFileRoute("/player/$username")({
 	beforeLoad: async ({ context }) => {
 		const matches = context.queryClient.ensureQueryData(matchesQuery);
 		return { matches };
@@ -19,9 +20,9 @@ export const Route = createFileRoute("/player/$playerId")({
 });
 
 function User() {
-	const { playerId } = Route.useParams();
+	const { username } = Route.useParams();
 	const matches = useQueryData(matchesQuery);
-	const res = usePlayerInfo(playerId);
+	const res = usePlayerInfo(username);
 	const [kdr, setKDR] = useState<number>(1);
 	const [winCount, setWinCount] = useState<number>(0);
 	const [lossCount, setLossCount] = useState<number>(0);
@@ -77,7 +78,7 @@ function User() {
 		}
 	}, [res, matches]);
 	return (
-		<div className="w-full h-full flex flex-col space-y-2">
+		<div className="flex flex-col h-full space-y-2">
 			{res == null || matches == null ? (
 				<div className="flex flex-col items-center">
 					<Spinner className="size-16" />
@@ -85,7 +86,7 @@ function User() {
 				</div>
 			) : res.exists ? (
 				<>
-					<Card className="ring-sidebar-border rounded-lg">
+					<Card className="ring-sidebar-border rounded-lg min-h-[62.7667px] shrink-0">
 						<CardHeader>
 							<CardTitle className="flex flex-row items-center space-x-2 text-lg">
 								<MinecraftAvatar uuid={res.uuid} /> <span>{res.username}</span>
@@ -120,25 +121,39 @@ function User() {
 							</div>
 						</CardContent>
 					</Card>
+					<div className="flex-1 min-h-0 flex flex-row space-x-2">
+						<Card
+							className="ring-sidebar-border rounded-lg max-h-full"
+							style={{
+								width: "calc(var(--spacing) * 140)",
+							}}
+						>
+							<CardHeader>
+								<CardTitle>Performances</CardTitle>
+							</CardHeader>
+							<CardContent className="flex-1 min-h-0 px-1">
+								<ScrollArea className="h-full px-3">
+									<PlayerPerformancesList player={res} />
+								</ScrollArea>
+							</CardContent>
+						</Card>
 
-					<Card
-						className="ring-sidebar-border rounded-lg"
-						style={{
-							width: "calc(var(--spacing) * 140)",
-						}}
-					>
-						<CardHeader>
-							<CardTitle>Performances</CardTitle>
-						</CardHeader>
-						<CardContent>
-							<PlayerPerformancesList player={res} />
-						</CardContent>
-					</Card>
+						<Card className="ring-sidebar-border rounded-lg max-h-full flex-1">
+							<CardHeader>
+								<CardTitle>User Info</CardTitle>
+							</CardHeader>
+							<CardContent className="flex-1 min-h-0 px-1">
+								<ScrollArea className="h-full px-3">
+									<span>This will be more stats about the user.</span>
+								</ScrollArea>
+							</CardContent>
+						</Card>
+					</div>
 				</>
 			) : (
 				<div className="flex flex-col items-center">
 					<div className="text-red-400 w-full text-center h-full">Player Not Found</div>
-					<div>{playerId}</div>
+					<div>{username}</div>
 					<Button
 						onClick={() => {
 							router.navigate({

@@ -25,14 +25,14 @@ export function useBetterAuth() {
 	return useQueryData(betterAuthQuery)!;
 }
 
-export function usePlayerInfo(playerId: string) {
+export function usePlayerInfo(username: string) {
 	return useQueryData({
-		queryKey: ["todos", playerId],
+		queryKey: ["todos", username],
 		staleTime: 60 * 5 * 1000,
 		queryFn: async (): Promise<OptionalPlayerInformation> => {
-			const data = await api_client.api.player.info[":id"].$get({
+			const data = await api_client.api.player.info[":username"].$get({
 				param: {
-					id: playerId,
+					username: username,
 				},
 			});
 			if (!data.ok) {

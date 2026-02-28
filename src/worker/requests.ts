@@ -195,6 +195,47 @@ export async function GetUserInformationById(id: string): Promise<OptionalUserIn
 	};
 }
 
+export async function GetUserInformationByUsername(
+	username: string,
+): Promise<OptionalUserInformation> {
+	const [profile] = await TimeRequest(
+		db.select().from(user_profiles).where(eq(user_profiles.username, username)).limit(1),
+		"Reaching out to cloudflare to fetch user profile",
+	);
+
+	const [raw] = await TimeRequest(
+		db.select().from(user).where(eq(user.id, profile.id)),
+		"Reaching out to cloudflare to fetch user",
+	);
+
+	if (raw == undefined) {
+		return {
+			exists: false,
+		};
+	}
+
+	if (profile.uuid != null && profile.username == null) {
+		const data = await FetchMojangProfile(profile.uuid);
+		profile.username = data.username;
+
+		await TimeRequest(
+			db
+				.update(user_profiles)
+				.set({
+					username: data.username,
+				})
+				.where(eq(user_profiles.id, profile.id)),
+			"Reaching out to cloudflare to update profile username",
+		);
+	}
+
+	return {
+		exists: true,
+		...raw,
+		...profile,
+	};
+}
+
 export async function GetPlayerInformationByUser(
 	user: UserInformation,
 ): Promise<OptionalPlayerInformation> {
@@ -220,6 +261,36 @@ export async function GetPlayerInformationById(id: string): Promise<OptionalPlay
 			"Reaching out to cloudflare to fetch user performances",
 		),
 	]);
+
+	if (user.exists && user.uuid) {
+		return {
+			...user,
+			performances: performances,
+			uuid: user.uuid,
+			exists: true,
+		};
+	} else {
+		return {
+			exists: false,
+		};
+	}
+}
+
+export async function GetPlayerInformationByUsername(
+	username: string,
+): Promise<OptionalPlayerInformation> {
+	const user = await GetUserInformationByUsername(username);
+
+	if (!user.exists) {
+		return {
+			exists: false,
+		};
+	}
+
+	const performances = await TimeRequest(
+		db.select().from(user_performances).where(eq(user_performances.user, user.id)),
+		"Reaching out to cloudflare to fetch user performances",
+	);
 
 	if (user.exists && user.uuid) {
 		return {

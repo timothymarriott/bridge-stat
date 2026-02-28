@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { better_auth } from "./auth";
-import { GetPlayerInformationById, GetPlayerInformationByUser, GetUsers } from "../requests";
+import { GetPlayerInformationByUser, GetPlayerInformationByUsername, GetUsers } from "../requests";
 import { OptionalPlayerInformation } from "../types";
 import { TypedResponse } from "hono/types";
 
@@ -17,9 +17,14 @@ export const player = new Hono<{
 
 		return c.json<OptionalPlayerInformation[]>(result);
 	})
-	.get<"/info/:id", {}, TypedResponse<OptionalPlayerInformation>>("/info/:id", async (c) => {
-		const { id } = c.req.param();
-		return c.json<OptionalPlayerInformation>(await GetPlayerInformationById(id));
-	});
+	.get<"/info/:username", {}, TypedResponse<OptionalPlayerInformation>>(
+		"/info/:username",
+		async (c) => {
+			const { username } = c.req.param();
+			return c.json<OptionalPlayerInformation>(
+				await GetPlayerInformationByUsername(username),
+			);
+		},
+	);
 
 export default player;
