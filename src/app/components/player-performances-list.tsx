@@ -10,11 +10,13 @@ import {
 	PopoverTitle,
 	PopoverTrigger,
 } from "@/components/ui/popover";
-import { ClockIcon, MapIcon } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function PlayerPerformancesList({ player }: { player: PlayerInformation }) {
 	const matches = useQueryData(matchesQuery);
 	const players = useQueryData(playersQuery, []);
+
+	const isMobile = useIsMobile();
 
 	return (
 		<div className="space-y-1">
@@ -75,13 +77,16 @@ export default function PlayerPerformancesList({ player }: { player: PlayerInfor
 												size="size-5"
 												uuid={player.uuid}
 												tooltip={
-													<>
-														<span>{player.username ?? ""}</span> <br />
-														<span>Goals: {p.scores}</span> <br />
-														<span>Kills: {p.kills}</span> <br />
-														<span>Deaths: {p.deaths}</span> <br />
-														<span>Voids: {p.voids}</span>
-													</>
+													isMobile ? undefined : (
+														<>
+															<span>{player.username ?? ""}</span>{" "}
+															<br />
+															<span>Goals: {p.scores}</span> <br />
+															<span>Kills: {p.kills}</span> <br />
+															<span>Deaths: {p.deaths}</span> <br />
+															<span>Voids: {p.voids}</span>
+														</>
+													)
 												}
 											/>
 										);
@@ -106,7 +111,12 @@ export default function PlayerPerformancesList({ player }: { player: PlayerInfor
 										<TeamInfo team={Team.BLUE} side="left" />
 									)}
 
-									<div className="text-center grid grid-cols-4">
+									<div
+										className={
+											"text-center grid " +
+											(isMobile ? "grid-cols-3" : "grid-cols-4")
+										}
+									>
 										<div>
 											<span
 												className={
@@ -154,9 +164,11 @@ export default function PlayerPerformancesList({ player }: { player: PlayerInfor
 										) : (
 											<span className="text-red-400">Lost</span>
 										)}
-										<span className="text-accent-foreground/50">
-											{match.map}
-										</span>
+										{isMobile ? null : (
+											<span className="text-accent-foreground/50">
+												{match.map}
+											</span>
+										)}
 									</div>
 									{perf.team == Team.RED ? (
 										<TeamInfo team={Team.BLUE} side="right" />
@@ -170,6 +182,16 @@ export default function PlayerPerformancesList({ player }: { player: PlayerInfor
 									<PopoverTitle>What a cool match.</PopoverTitle>
 									<PopoverDescription>
 										This will contain more info about the match.
+										<img
+											src={
+												"/Maps/" +
+												(perf.team == Team.RED ? "Red" : "Blue") +
+												"/" +
+												match.map +
+												".png"
+											}
+											alt=""
+										/>
 									</PopoverDescription>
 								</PopoverHeader>
 							</PopoverContent>
