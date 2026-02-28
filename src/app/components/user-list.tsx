@@ -143,7 +143,7 @@ export default function UserList() {
 						) : (
 							<TableRow>
 								<TableCell colSpan={columns.length} className="h-24 text-center">
-									No Requests.
+									No Users.
 								</TableCell>
 							</TableRow>
 						)}

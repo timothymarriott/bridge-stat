@@ -23,6 +23,7 @@
         "better-auth": "^1.4.18",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
+        "cookie": "^1.1.1",
         "dotenv": "^17.3.1",
         "drizzle-orm": "^0.45.1",
         "hono": "4.11.1",
@@ -57,7 +58,7 @@
     "scripts": {
         "build": "tsc -b && vite build",
         "cf-typegen": "wrangler types",
-        "check": "tsc && vite build && wrangler deploy --dry-run",
+        "check": "wrangler types && tsc && vite build && wrangler deploy --dry-run",
         "deploy": "wrangler deploy --env production",
         "dev": "vite",
         "lint": "eslint .",

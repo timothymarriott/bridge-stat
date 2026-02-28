@@ -1,62 +1,69 @@
-import { Hono } from "hono";
-import link from "./link";
-import { auth } from "../auth";
+import { Hono, TypedResponse } from "hono";
+import { better_auth } from "../auth";
 import { RequireAdmin } from "../../utils";
-import { UserInformation } from "../../types";
+import { GetPlayerInformationByUser, GetUsers } from "../../requests";
+import link from "./link";
+import {
+	FullMatchInsertData,
+	MatchInsertData,
+	PlayerPerformanceInsertData,
+	UserInformation,
+} from "../../types";
+import { RequireAuthInformation } from "../..";
 import { db } from "../../database";
-import { user, user_profiles } from "../../schema";
+import { matches, user_performances } from "../../schema";
 import { eq } from "drizzle-orm";
-import { FetchMojangProfile } from "../../mojang";
 
-const admin = new Hono<{
-	Bindings: Env;
+export const admin = new Hono<{
 	Variables: {
-		user: typeof auth.$Infer.Session.user | null;
-		session: typeof auth.$Infer.Session.session | null;
+		user: typeof better_auth.$Infer.Session.user | null;
+		session: typeof better_auth.$Infer.Session.session | null;
 	};
-}>();
+}>()
+	.use("*", RequireAuthInformation)
+	.use("*", RequireAdmin)
+	.route("/link", link)
+	.post<"/upload">("/upload", async (c) => {
+		const text = await c.req.text();
+		const data: FullMatchInsertData = await JSON.parse(text);
 
-admin.use("*", RequireAdmin);
-admin.route("/link", link);
+		const users = await GetUsers();
 
-admin.use("/", async (c) => {
-	return c.text("You are an admin");
-});
+		const players = await Promise.all(users.map((usr) => GetPlayerInformationByUser(usr)));
 
-admin.get("/users", async (c) => {
-	const result: UserInformation[] = [];
-	const raw = await db.select().from(user);
+		const match_data: MatchInsertData = {
+			...data,
+		};
+		const [match] = await db.insert(matches).values(match_data).returning();
 
-	await Promise.all(
-		raw.map((element) =>
-			(async () => {
-				const [profile] = await db
-					.select()
-					.from(user_profiles)
-					.where(eq(user_profiles.id, element.id))
-					.limit(1);
+		const perfs: PlayerPerformanceInsertData[] = [];
 
-				if (profile.uuid != null && profile.username == null) {
-					const data = await FetchMojangProfile(profile.uuid);
-					profile.username = data.username;
-					await db
-						.update(user_profiles)
-						.set({
-							username: data.username,
-						})
-						.where(eq(user_profiles.id, element.id));
-				}
-
-				result.push({
-					...element,
-					...profile,
+		for (const info of [...data.red_players, ...data.blue_players]) {
+			const player = players.find((p) => p.exists && p.username == info.username);
+			if (player && player.exists) {
+				perfs.push({
+					match: match.id,
+					user: player.id,
+					team: info.team,
+					kills: info.kills,
+					deaths: info.deaths,
+					voids: info.voids,
+					scores: info.scores,
 				});
-			})(),
-		),
-	);
+			} else {
+				await db.delete(matches).where(eq(matches.id, match.id));
+				return c.text("User " + info.username + " not found.", 404);
+			}
+		}
 
-	result.sort((a, b) => a.name.localeCompare(b.name));
-	return c.json(result);
-});
+		for (const perf of perfs) {
+			await db.insert(user_performances).values(perf);
+		}
+
+		return c.body(null, 200);
+	})
+	.get<"/users", {}, TypedResponse<UserInformation[]>>("/users", async (c) => {
+		return c.json<UserInformation[]>(await GetUsers());
+	});
 
 export default admin;

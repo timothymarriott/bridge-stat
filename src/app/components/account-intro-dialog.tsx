@@ -21,10 +21,7 @@ export default function AccountIntroDialog() {
 	const auth = useAuth();
 	const [loading, setLoading] = useState<boolean>(false);
 	let show_dialog =
-		auth.isLoggedIn &&
-		auth.user.uuid == null &&
-		auth.user.awaiting_link_request == 0 &&
-		!loading;
+		auth.exists && auth.uuid == null && auth.awaiting_link_request == 0 && !loading;
 
 	const usernameInputRef = useRef<HTMLInputElement>(null);
 
@@ -58,8 +55,7 @@ export default function AccountIntroDialog() {
 								}
 
 								const res = await fetch(
-									"https://mcprofile.io/api/v1/java/username/" +
-										encodeURIComponent(value),
+									"/api/profile/name/" + encodeURIComponent(value),
 								);
 
 								if (res.status == 404) {
@@ -116,6 +112,7 @@ export default function AccountIntroDialog() {
 									disabled={!show_dialog}
 									onClick={async () => {
 										setLoading(true);
+
 										await fetch("/api/link/request/" + mcprofile.uuid, {
 											credentials: "include",
 											method: "POST",

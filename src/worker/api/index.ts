@@ -1,79 +1,172 @@
-import { Hono } from "hono";
+import { Hono, TypedResponse } from "hono";
 import admin from "./admin";
 import { cors } from "hono/cors";
 import { env } from "cloudflare:workers";
-import { auth, authRoute } from "./auth";
-import token from "./token";
-import { link_requests, user_profiles } from "../schema";
-import { eq } from "drizzle-orm";
+import { better_auth, auth } from "./auth";
+import { FetchMojangProfile, FetchMojangProfileFromName } from "../mojang";
+import player from "./player";
+import {
+	AddLinkRequest,
+	GetMatches,
+	GetPlayerInformationByUser,
+	GetUserProfileById,
+	GetUsers,
+} from "../requests";
+import { Match, MatchInsertData, MCProfileInfo, PlayerPerformanceInsertData, Team } from "../types";
 import { db } from "../database";
-import { FetchMojangProfile } from "../mojang";
+import { matches, user_performances } from "../schema";
+import { MAP_NAMES } from "../../lib/data";
+import { RequireAuthInformation } from "..";
 
-const api = new Hono<{
-	Bindings: Env;
+export const api = new Hono<{
 	Variables: {
-		user: typeof auth.$Infer.Session.user | null;
-		session: typeof auth.$Infer.Session.session | null;
+		user: typeof better_auth.$Infer.Session.user | null;
+		session: typeof better_auth.$Infer.Session.session | null;
 	};
-}>();
+}>()
+	.get("/", (c) => c.json({ name: "Testing" }))
+	.route("/admin", admin)
+	.use("/link/request/*", RequireAuthInformation)
+	.post("/link/request/:uuid", async (c) => {
+		const { uuid } = c.req.param();
+		const user = c.get("user");
 
-api.get("/", (c) => c.json({ name: "Testing" }));
+		if (!user) return c.body(null, 401);
 
-api.route("/admin", admin);
-api.route("/token", token);
+		const res = await GetUserProfileById(user.id);
 
-api.post("/link/request/:uuid", async (c) => {
-	const { uuid } = c.req.param();
-	const user = c.get("user");
+		if (res!.awaiting_link_request > 0) {
+			return c.body(null, 401);
+		}
 
-	if (!user) return c.body("Unauthorized", 401);
+		await AddLinkRequest(user.id, uuid);
 
-	const [res] = await db
-		.select()
-		.from(user_profiles)
-		.where(eq(user_profiles.id, user.id))
-		.limit(1);
+		return c.body(null, 200);
+	})
+	.use(
+		"/auth/*",
+		cors({
+			origin: env.BETTER_AUTH_URL,
+			allowHeaders: ["Content-Type", "Authorization"],
+			allowMethods: ["POST", "GET", "OPTIONS"],
+			exposeHeaders: ["Content-Length"],
+			maxAge: 600,
+			credentials: true,
+		}),
+	)
+	.get<"/profile/uuid/:uuid", {}, TypedResponse<MCProfileInfo | null>>(
+		"/profile/uuid/:uuid",
+		async (c) => {
+			const { uuid } = c.req.param();
+			return c.json<MCProfileInfo>(await FetchMojangProfile(uuid));
+		},
+	)
+	.get<"/profile/name/:name", {}, TypedResponse<MCProfileInfo | null>>(
+		"/profile/name/:name",
+		async (c) => {
+			const { name } = c.req.param();
 
-	if (res.awaiting_link_request > 0) {
-		return c.body("Already Requested", 401);
-	}
+			return c.json<MCProfileInfo>(await FetchMojangProfileFromName(name));
+		},
+	)
+	.get<"/matches", {}, TypedResponse<Record<string, Match>>>("/matches", async (c) => {
+		const matches = await GetMatches();
 
-	await db
-		.update(user_profiles)
-		.set({
-			awaiting_link_request: 1,
-		})
-		.where(eq(user_profiles.id, user.id));
+		return c.json(matches);
+	})
+	.get("/seed", async (c) => {
+		const users = await GetUsers();
 
-	const result = await db.insert(link_requests).values({
-		user: user.id,
-		uuid: uuid,
-	});
+		const all_players = await Promise.all(users.map((usr) => GetPlayerInformationByUser(usr)));
 
-	return c.json(result.success);
-});
+		const performances: PlayerPerformanceInsertData[] = [];
+		const new_matches: MatchInsertData[] = [];
 
-api.use(
-	"/auth/*", // or replace with "*" to enable cors for all routes
-	cors({
-		origin: env.BETTER_AUTH_URL, // replace with your origin
-		allowHeaders: ["Content-Type", "Authorization"],
-		allowMethods: ["POST", "GET", "OPTIONS"],
-		exposeHeaders: ["Content-Length"],
-		maxAge: 600,
-		credentials: true,
-	}),
-);
+		const keys: number[] = [];
 
-api.get("/profile/:uuid", async (c) => {
-	const { uuid } = c.req.param();
-	const user = c.get("user");
+		for (let i = 0; i < 20; i++) {
+			keys.push(i);
+		}
 
-	if (!user) return c.body("Unauthorized", 401);
+		await Promise.all(
+			keys.map(async (_) => {
+				const players = all_players.toSorted(() => {
+					if (Math.random() >= 0.5) {
+						return 1;
+					} else {
+						return -1;
+					}
+				});
 
-	return c.json(await FetchMojangProfile(uuid));
-});
+				const winner = Math.random() >= 0.5 ? Team.RED : Team.BLUE;
 
-api.route("/auth", authRoute);
+				console.log(winner);
+
+				const game: MatchInsertData = {
+					winner,
+					red_scores: winner == Team.RED ? 5 : Math.floor(Math.random() * 4),
+					blue_scores: winner == Team.BLUE ? 5 : Math.floor(Math.random() * 4),
+					duration: 300 + Math.random() * 600,
+					map: MAP_NAMES[Math.floor(Math.random() * MAP_NAMES.length)],
+				};
+
+				new_matches.push(game);
+
+				const match_data = await db.insert(matches).values(game).returning();
+
+				const red_players = [players.pop()!, players.pop()!];
+
+				const blue_players = [players.pop()!, players.pop()!];
+
+				let remaining_red_scores = game.red_scores ?? 0;
+
+				for (const player of red_players) {
+					if (!player.exists) continue;
+					const scores = Math.floor(Math.random() * remaining_red_scores);
+					remaining_red_scores -= scores;
+					const data: PlayerPerformanceInsertData = {
+						match: match_data[0].id,
+						user: player.id,
+						team: Team.RED,
+						kills: Math.floor(Math.random() * 20),
+						deaths: Math.floor(Math.random() * 20),
+						voids: Math.floor(Math.random() * 10),
+						scores: scores,
+					};
+					performances.push(data);
+					await db.insert(user_performances).values(data);
+				}
+
+				let remaining_blue_scores = game.blue_scores ?? 0;
+
+				for (const player of blue_players) {
+					if (!player.exists) continue;
+					const scores = Math.floor(Math.random() * remaining_blue_scores);
+					remaining_blue_scores -= scores;
+					const data: PlayerPerformanceInsertData = {
+						match: match_data[0].id,
+						user: player.id,
+						team: Team.BLUE,
+						kills: Math.floor(Math.random() * 20),
+						deaths: Math.floor(Math.random() * 20),
+						voids: Math.floor(Math.random() * 10),
+						scores: scores,
+					};
+					performances.push(data);
+					await db.insert(user_performances).values(data);
+				}
+			}),
+		);
+
+		return c.json(
+			{
+				matches: new_matches,
+				performances: performances,
+			},
+			200,
+		);
+	})
+	.route("/player", player)
+	.route("/auth", auth);
 
 export default api;
