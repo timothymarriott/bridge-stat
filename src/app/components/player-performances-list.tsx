@@ -111,12 +111,7 @@ export default function PlayerPerformancesList({ player }: { player: PlayerInfor
 										<TeamInfo team={Team.BLUE} side="left" />
 									)}
 
-									<div
-										className={
-											"text-center grid " +
-											(isMobile ? "grid-cols-3" : "grid-cols-4")
-										}
-									>
+									<div className={"text-center grid grid-cols-3"}>
 										<div>
 											<span
 												className={
@@ -163,11 +158,6 @@ export default function PlayerPerformancesList({ player }: { player: PlayerInfor
 											<span className="text-green-400">Won</span>
 										) : (
 											<span className="text-red-400">Lost</span>
-										)}
-										{isMobile ? null : (
-											<span className="text-accent-foreground/50">
-												{match.map}
-											</span>
 										)}
 									</div>
 									{perf.team == Team.RED ? (
