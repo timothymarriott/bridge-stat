@@ -8,8 +8,8 @@ export type PlayerPerformance = InferSelectModel<typeof user_performances>;
 export type LinkRequest = InferSelectModel<typeof link_requests>;
 export type MatchInsertData = InferInsertModel<typeof matches>;
 export type Match = InferSelectModel<typeof matches> & {
-	red_players: string[];
-	blue_players: string[];
+	red_players: PlayerPerformance[];
+	blue_players: PlayerPerformance[];
 };
 
 export type MatchPlayerInsertData = {

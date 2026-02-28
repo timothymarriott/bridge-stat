@@ -39,7 +39,7 @@ export function LayoutSidebar() {
 									className="font-bold"
 								>
 									<MinecraftAvatar size="size-6" uuid={player.uuid} />
-									{player.name}
+									{player.username}
 								</SidebarMenuButton>
 							);
 						})

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { api_client, authQuery } from "../queries";
+import { authQuery } from "../queries";
 import LinkRequestList from "../components/link-request-list";
 import UserList from "../components/user-list";
 import { useRef } from "react";

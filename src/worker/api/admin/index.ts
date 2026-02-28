@@ -12,6 +12,7 @@ import {
 import { RequireAuthInformation } from "../..";
 import { db } from "../../database";
 import { matches, user_performances } from "../../schema";
+import { eq } from "drizzle-orm";
 
 export const admin = new Hono<{
 	Variables: {
@@ -33,13 +34,14 @@ export const admin = new Hono<{
 		const match_data: MatchInsertData = {
 			...data,
 		};
-
 		const [match] = await db.insert(matches).values(match_data).returning();
 
-		for (const info of data.red_players) {
+		const perfs: PlayerPerformanceInsertData[] = [];
+
+		for (const info of [...data.red_players, ...data.blue_players]) {
 			const player = players.find((p) => p.exists && p.username == info.username);
 			if (player && player.exists) {
-				const perf_data: PlayerPerformanceInsertData = {
+				perfs.push({
 					match: match.id,
 					user: player.id,
 					team: info.team,
@@ -47,9 +49,15 @@ export const admin = new Hono<{
 					deaths: info.deaths,
 					voids: info.voids,
 					scores: info.scores,
-				};
-				await db.insert(user_performances).values(perf_data);
+				});
+			} else {
+				await db.delete(matches).where(eq(matches.id, match.id));
+				return c.text("User " + info.username + " not found.", 404);
 			}
+		}
+
+		for (const perf of perfs) {
+			await db.insert(user_performances).values(perf);
 		}
 
 		return c.body(null, 200);

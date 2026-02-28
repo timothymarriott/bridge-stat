@@ -86,8 +86,7 @@ export async function GetMatches(): Promise<Record<string, Match>> {
 			.select({
 				match: matches,
 
-				user_id: user_performances.user,
-				team: user_performances.team,
+				performance: user_performances,
 			})
 			.from(matches)
 			.leftJoin(user_performances, eq(user_performances.match, matches.id)),
@@ -104,11 +103,11 @@ export async function GetMatches(): Promise<Record<string, Match>> {
 			};
 		}
 
-		if (match.team == Team.RED && match.user_id != null) {
-			result[match.match.id].red_players.push(match.user_id);
+		if (match.performance != null && match.performance.team == Team.RED) {
+			result[match.match.id].red_players.push(match.performance);
 		}
-		if (match.team == Team.BLUE && match.user_id != null) {
-			result[match.match.id].blue_players.push(match.user_id);
+		if (match.performance != null && match.performance.team == Team.BLUE) {
+			result[match.match.id].blue_players.push(match.performance);
 		}
 	}
 	return result;
