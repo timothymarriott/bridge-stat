@@ -1,6 +1,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { ReactNode } from "react";
 
 export default function MinecraftAvatar({
 	uuid,
@@ -9,16 +10,14 @@ export default function MinecraftAvatar({
 }: {
 	uuid: string;
 	size?: string;
-	tooltip?: string;
+	tooltip?: ReactNode;
 }) {
 	return tooltip != undefined ? (
-		<Tooltip>
+		<Tooltip disableHoverableContent>
 			<TooltipTrigger>
 				<InternalAvatar uuid={uuid} size={size}></InternalAvatar>
 			</TooltipTrigger>
-			<TooltipContent side="left">
-				<p>{tooltip}</p>
-			</TooltipContent>
+			<TooltipContent side="left">{tooltip}</TooltipContent>
 		</Tooltip>
 	) : (
 		<InternalAvatar uuid={uuid} size={size}></InternalAvatar>

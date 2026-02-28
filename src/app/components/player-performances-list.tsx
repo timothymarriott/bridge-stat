@@ -2,6 +2,7 @@ import { PlayerInformation, Team } from "@/worker/types";
 import { useQueryData } from "../auth-hooks";
 import { matchesQuery, playersQuery } from "../queries";
 import MinecraftAvatar from "./mc-avatar";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 export default function PlayerPerformancesList({ player }: { player: PlayerInformation }) {
 	const matches = useQueryData(matchesQuery);
@@ -10,7 +11,7 @@ export default function PlayerPerformancesList({ player }: { player: PlayerInfor
 	return (
 		<div className="space-y-1">
 			{matches != null &&
-				player.performances.map((perf) => {
+				player.performances.map((perf, i) => {
 					if (perf.match == null) return null;
 
 					const match = matches[perf.match];
@@ -43,16 +44,16 @@ export default function PlayerPerformancesList({ player }: { player: PlayerInfor
 						return (
 							<div
 								className={
-									"h-full p-1 flex " +
+									"h-full flex text-center " +
 									(side == "left" ? "flex-row" : "flex-row-reverse") +
-									" rounded-sm space-x-1 " +
-									(team == Team.RED ? "bg-red-500/80" : "bg-blue-600/80")
+									" rounded-sm space-x-1 "
 								}
 							>
 								<div
 									className={
-										"grid grid-cols-4 " +
-										(side == "right" ? "items-end [direction:rtl]" : "")
+										"grid grid-cols-4 rounded-sm p-1 space-x-1 " +
+										(side == "right" ? "items-end [direction:rtl] " : "") +
+										(team == Team.RED ? "bg-red-500/80" : "bg-blue-600/80")
 									}
 								>
 									{performances.map((p) => {
@@ -65,13 +66,21 @@ export default function PlayerPerformancesList({ player }: { player: PlayerInfor
 											<MinecraftAvatar
 												size="size-5"
 												uuid={player.uuid}
-												tooltip={(player.username ?? "") + ": " + p.scores}
+												tooltip={
+													<>
+														<span>{player.username ?? ""}</span> <br />
+														<span>Goals: {p.scores}</span> <br />
+														<span>Kills: {p.kills}</span> <br />
+														<span>Deaths: {p.deaths}</span> <br />
+														<span>Voids: {p.voids}</span>
+													</>
+												}
 											/>
 										);
 									})}
 								</div>
-								<div className="h-full flex flex-row space-x-3">
-									<div>
+								<div className="h-full flex flex-row space-x-3 ">
+									<div className="text-center flex space-x-1 items-center">
 										<span className="font-bold">
 											<span>
 												{team == Team.RED ? red_scores : blue_scores}
@@ -79,7 +88,7 @@ export default function PlayerPerformancesList({ player }: { player: PlayerInfor
 										</span>
 										<span className="text-accent-foreground/80 font-bold">
 											{" "}
-											points
+											goals
 										</span>
 									</div>
 									{/* <span className="font-extrabold">•</span> */}
@@ -89,19 +98,32 @@ export default function PlayerPerformancesList({ player }: { player: PlayerInfor
 					}
 
 					return (
-						<div className="justify-between grid grid-cols-3 rounded-sm">
+						<div
+							className={
+								"justify-between grid grid-cols-3 rounded-sm items-center " +
+								(i % 2 == 0 ? "bg-sidebar-accent/40" : "")
+							}
+						>
 							{perf.team == Team.RED ? (
 								<TeamInfo team={Team.RED} side="left" />
 							) : (
 								<TeamInfo team={Team.BLUE} side="left" />
 							)}
 
-							<div className="text-center">
+							<div className="text-center grid grid-cols-2">
 								{winner == perf.team ? (
 									<span className="text-green-400">Won</span>
 								) : (
 									<span className="text-red-400">Lost</span>
 								)}
+								<Tooltip disableHoverableContent>
+									<TooltipTrigger>
+										<span>{match.map}</span>
+									</TooltipTrigger>
+									<TooltipContent>
+										<img src={"/Maps/Blue/" + match.map + ".png"} />
+									</TooltipContent>
+								</Tooltip>
 							</div>
 							{perf.team == Team.RED ? (
 								<TeamInfo team={Team.BLUE} side="right" />

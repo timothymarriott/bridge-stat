@@ -124,7 +124,7 @@ function User() {
 					<Card
 						className="ring-sidebar-border rounded-lg"
 						style={{
-							width: "calc(var(--spacing) * 130)",
+							width: "calc(var(--spacing) * 140)",
 						}}
 					>
 						<CardHeader>
