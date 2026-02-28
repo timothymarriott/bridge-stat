@@ -8,10 +8,7 @@
         "production": {
             "vars": {
                 "BETTER_AUTH_URL": "https://bridge-stat.timothyrmarriott.workers.dev",
-                "VITE_BASE_URL": "https://bridge-stat.timothyrmarriott.workers.dev",
-                "DISCORD_CLIENT_ID": "1474721729896255569",
-                "GITHUB_CLIENT_ID": "Ov23li17itAMvfrDTJgU",
-                "GOOGLE_CLIENT_ID": "802657096997-o48d74hc0lf2tnddl7a74qa1idkubrla.apps.googleusercontent.com"
+                "VITE_BASE_URL": "https://bridge-stat.timothyrmarriott.workers.dev"
             }
         }
     },
@@ -35,8 +32,9 @@
     ],
     "vars": {
         "BETTER_AUTH_URL": "https://bridge-stat.timothyrmarriott.workers.dev",
+        "VITE_BASE_URL": "https://bridge-stat.timothyrmarriott.workers.dev",
         "DISCORD_CLIENT_ID": "1474721729896255569",
-        "VITE_BASE_URL": "https://bridge-stat.timothyrmarriott.workers.dev"
+        "GOOGLE_CLIENT_ID": "802657096997-o48d74hc0lf2tnddl7a74qa1idkubrla.apps.googleusercontent.com"
     },
     "kv_namespaces": [
         {
