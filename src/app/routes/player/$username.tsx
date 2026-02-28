@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/spinner";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Team } from "@/worker/types";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
@@ -26,6 +27,7 @@ function User() {
 	const [kdr, setKDR] = useState<number>(1);
 	const [winCount, setWinCount] = useState<number>(0);
 	const [lossCount, setLossCount] = useState<number>(0);
+	const isMobile = useIsMobile();
 	useEffect(() => {
 		if (res != null && matches != null && res.exists) {
 			let total_kills = 0;
@@ -121,13 +123,8 @@ function User() {
 							</div>
 						</CardContent>
 					</Card>
-					<div className="flex-1 min-h-0 flex flex-row space-x-2">
-						<Card
-							className="ring-sidebar-border rounded-lg max-h-full"
-							style={{
-								width: "calc(var(--spacing) * 140)",
-							}}
-						>
+					{isMobile ? (
+						<Card className="flex-1 min-h-0 flex flex-col w-full ring-sidebar-border rounded-lg">
 							<CardHeader>
 								<CardTitle>Performances</CardTitle>
 							</CardHeader>
@@ -137,18 +134,36 @@ function User() {
 								</ScrollArea>
 							</CardContent>
 						</Card>
+					) : (
+						<div className="flex-1 min-h-0 flex flex-row space-x-2">
+							<Card
+								className="ring-sidebar-border rounded-lg max-h-full"
+								style={{
+									width: "calc(var(--spacing) * 140)",
+								}}
+							>
+								<CardHeader>
+									<CardTitle>Performances</CardTitle>
+								</CardHeader>
+								<CardContent className="flex-1 min-h-0 px-1">
+									<ScrollArea className="h-full px-3">
+										<PlayerPerformancesList player={res} />
+									</ScrollArea>
+								</CardContent>
+							</Card>
 
-						<Card className="ring-sidebar-border rounded-lg max-h-full flex-1">
-							<CardHeader>
-								<CardTitle>User Info</CardTitle>
-							</CardHeader>
-							<CardContent className="flex-1 min-h-0 px-1">
-								<ScrollArea className="h-full px-3">
-									<span>This will be more stats about the user.</span>
-								</ScrollArea>
-							</CardContent>
-						</Card>
-					</div>
+							<Card className="ring-sidebar-border rounded-lg max-h-full flex-1">
+								<CardHeader>
+									<CardTitle>User Info</CardTitle>
+								</CardHeader>
+								<CardContent className="flex-1 min-h-0 px-1">
+									<ScrollArea className="h-full px-3">
+										<span>This will be more stats about the user.</span>
+									</ScrollArea>
+								</CardContent>
+							</Card>
+						</div>
+					)}
 				</>
 			) : (
 				<div className="flex flex-col items-center">
