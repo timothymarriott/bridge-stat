@@ -116,14 +116,7 @@ export default function PlayerPerformancesList({ player }: { player: PlayerInfor
 								) : (
 									<span className="text-red-400">Lost</span>
 								)}
-								<Tooltip disableHoverableContent>
-									<TooltipTrigger>
-										<span>{match.map}</span>
-									</TooltipTrigger>
-									<TooltipContent>
-										<img src={"/Maps/Blue/" + match.map + ".png"} />
-									</TooltipContent>
-								</Tooltip>
+								<span>{match.map}</span>
 							</div>
 							{perf.team == Team.RED ? (
 								<TeamInfo team={Team.BLUE} side="right" />
