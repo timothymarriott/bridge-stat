@@ -61,7 +61,7 @@ export default function PlayerPerformancesList({ player }: { player: PlayerInfor
 							>
 								<div
 									className={
-										"grid grid-cols-3 rounded-sm p-1 space-x-1 " +
+										"grid grid-cols-4 w-26 rounded-sm p-1 space-x-1 " +
 										(side == "right" ? "items-end [direction:rtl] " : "") +
 										(team == Team.RED ? "bg-red-500/80" : "bg-blue-600/80")
 									}

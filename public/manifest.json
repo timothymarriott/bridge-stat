@@ -13,7 +13,7 @@
             "type": "image/png"
         }
     ],
-    "start_url": ".",
+    "start_url": "/",
     "display": "standalone",
     "theme_color": "oklch(0.21 0.04 264.04)",
     "background_color": "oklch(0.21 0.04 264.04)"
