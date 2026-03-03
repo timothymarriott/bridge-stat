@@ -55,6 +55,7 @@ export default function PlayerPerformancesList({ player }: { player: PlayerInfor
 				player.performances.map((perf, i) => {
 					return (
 						<PerformanceDisplay
+							key={i}
 							eloDeltas={eloDeltas}
 							matches={matches}
 							i={i}
@@ -122,7 +123,7 @@ function PerformanceDisplay({
 						(team == Team.RED ? "bg-red-500/80" : "bg-blue-600/80")
 					}
 				>
-					{performances.map((p) => {
+					{performances.map((p, i) => {
 						const player = players.find((_p) => {
 							if (!_p.exists || !_p) return false;
 							return _p.id == p.user;
@@ -130,6 +131,7 @@ function PerformanceDisplay({
 						if (player == undefined || !player.exists) return null;
 						return (
 							<MinecraftAvatar
+								key={i}
 								size="size-5"
 								uuid={player.uuid}
 								tooltip={
@@ -154,7 +156,7 @@ function PerformanceDisplay({
 	const [hovered, setHovered] = useState<boolean>(false);
 
 	return (
-		<Popover>
+		<Popover key={i}>
 			<PopoverTrigger asChild>
 				<div
 					className={

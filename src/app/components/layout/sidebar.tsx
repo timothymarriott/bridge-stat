@@ -26,7 +26,7 @@ export function LayoutSidebar() {
 	const [elos, setElos] = useState<Record<string, number>>({});
 
 	useEffect(() => {
-		setElos(CalculateElos(player_list ?? [], Object.values(matches)));
+		if (player_list != null) setElos(CalculateElos(player_list, Object.values(matches)));
 	}, [matches]);
 
 	return (
@@ -38,6 +38,8 @@ export function LayoutSidebar() {
 						player_list
 							.sort((a, b) => {
 								if (!a.exists || !b.exists) return 0;
+								if (elos[b.id] == undefined) return -1;
+								if (elos[a.id] == undefined) return 1;
 								return elos[b.id] - elos[a.id];
 							})
 							.map((player) => {
@@ -55,9 +57,11 @@ export function LayoutSidebar() {
 										<MinecraftAvatar size="size-6" uuid={player.uuid} />
 										<div className="w-full justify-between flex flex-row">
 											<span>{player.username}</span>
-											<span className="text-accent-foreground">
-												{Math.floor(elos[player.id])}
-											</span>
+											{elos[player.id] != undefined ? (
+												<span className="text-accent-foreground">
+													{Math.floor(elos[player.id]).toString()}
+												</span>
+											) : null}
 										</div>
 									</SidebarMenuButton>
 								);

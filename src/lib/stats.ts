@@ -8,12 +8,33 @@ export function CalculateElos(
 	const ratings: Record<string, Rating> = {};
 
 	for (const p of players) {
-		if (p.exists) ratings[p.id] = new Rating();
+		if (p.exists && p.username != "Plac3h0lder") ratings[p.id] = new Rating();
 	}
 
 	for (const match of matches) {
-		const redTeam = match.red_players.map((p) => ratings[p.user ?? ""]);
-		const blueTeam = match.blue_players.map((p) => ratings[p.user ?? ""]);
+		let redTeam = match.red_players.map((p) => {
+			if (p.user == null) {
+				return null;
+			}
+			const v = ratings[p.user];
+			if (v == undefined) {
+				return null;
+			}
+			return v;
+		});
+		redTeam = redTeam.filter((v) => v != null);
+		let blueTeam = match.blue_players.map((p) => {
+			if (p.user == null) {
+				return null;
+			}
+			const v = ratings[p.user];
+			if (v == undefined) {
+				return null;
+			}
+			return v;
+		});
+
+		blueTeam = blueTeam.filter((v) => v != null);
 
 		let ranks: number[];
 
