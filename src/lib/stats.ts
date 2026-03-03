@@ -1,4 +1,4 @@
-import { Match, Team } from "@/worker/types";
+import { Match, PlayerPerformance, Team } from "@/worker/types";
 
 export function CalculateZScore(x: number, stats: number[]) {
 	let mean = 0;
@@ -18,44 +18,36 @@ export function CalculateZScore(x: number, stats: number[]) {
 	return (x - mean) / (sigma + EPSILON);
 }
 
-export function CalculateMatchScores(
-	target: string,
-	match: Match,
-): {
-	kills: number;
-	deaths: number;
-	voids: number;
-	scores: number;
-} {
-	const targ = [...match.red_players, ...match.blue_players].find((x) => x.user == target);
-	if (!targ) {
-		throw new Error("Invalid target for score calculation.");
-	}
-
-	const kills = (targ.team == Team.RED ? match.red_players : match.blue_players).map(
-		(p) => p.kills,
-	);
-	const deaths = (targ.team == Team.RED ? match.red_players : match.blue_players).map(
-		(p) => p.deaths,
-	);
-	const voids = (targ.team == Team.RED ? match.red_players : match.blue_players).map(
-		(p) => p.voids,
-	);
-	const scores = (targ.team == Team.RED ? match.red_players : match.blue_players).map(
-		(p) => p.scores,
-	);
+export function CalculateMatchScores(target: string, match: Match) {
+	const allPlayers = [...match.red_players, ...match.blue_players];
+	const targ = allPlayers.find((p) => p.user === target);
+	if (!targ) throw new Error("Invalid target");
 
 	return {
-		kills: CalculateZScore(targ.kills, kills),
-		deaths: CalculateZScore(targ.deaths, deaths),
-		voids: CalculateZScore(targ.voids, voids),
-		scores: CalculateZScore(targ.scores, scores),
+		kills: CalculateZScore(
+			targ.kills,
+			allPlayers.map((p) => p.kills),
+		),
+		deaths: CalculateZScore(
+			targ.deaths,
+			allPlayers.map((p) => p.deaths),
+		),
+		voids: CalculateZScore(
+			targ.voids,
+			allPlayers.map((p) => p.voids),
+		),
+		scores: CalculateZScore(
+			targ.scores,
+			allPlayers.map((p) => p.scores),
+		),
 	};
 }
 
 export function CalculateMatchImpact(target: string, match: Match): number {
 	const scores = CalculateMatchScores(target, match);
-	return Math.tanh(1.3 * scores.scores + 1.1 * scores.kills - 1 * scores.deaths);
+	return Math.tanh(
+		2.0 * scores.scores + 1.1 * scores.kills - 2 * scores.deaths + 0.5 * scores.voids,
+	);
 }
 
 export function CalculateMatchRawShare(target: string, match: Match): number {
@@ -89,7 +81,7 @@ export function CalculateEloDelta(
 	target: string,
 	currentElos: Record<string, number>,
 	match: Match,
-	K = 30,
+	K = 50,
 ): number {
 	const targ = [...match.red_players, ...match.blue_players].find((x) => x.user == target);
 	if (!targ) {
@@ -101,14 +93,12 @@ export function CalculateEloDelta(
 		winner = Team.RED;
 	} else if (match.blue_scores == 5) {
 		winner = Team.BLUE;
+	} else {
+		throw new Error(`No Match winner`);
 	}
 
-	const rating_blue =
-		match.blue_players.reduce((sum, p) => sum + (currentElos[p.id] ?? 1000), 0) /
-		match.blue_players.length;
-	const rating_red =
-		match.red_players.reduce((sum, p) => sum + (currentElos[p.id] ?? 1000), 0) /
-		match.red_players.length;
+	const rating_blue = match.blue_players.reduce((sum, p) => sum + (currentElos[p.id] ?? 1000), 0);
+	const rating_red = match.red_players.reduce((sum, p) => sum + (currentElos[p.id] ?? 1000), 0);
 
 	const ratingTeam = targ.team == Team.RED ? rating_red : rating_blue;
 	const ratingOpponent = targ.team == Team.RED ? rating_blue : rating_red;

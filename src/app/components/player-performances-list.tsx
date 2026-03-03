@@ -11,7 +11,12 @@ import {
 	PopoverTrigger,
 } from "@/components/ui/popover";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { CalculateElos, CalculateMatchImpact, CalculateMatchScores } from "@/lib/stats";
+import {
+	CalculateEloDelta,
+	CalculateElos,
+	CalculateMatchImpact,
+	CalculateMatchScores,
+} from "@/lib/stats";
 
 export default function PlayerPerformancesList({ player }: { player: PlayerInformation }) {
 	const matches = useQueryData(matchesQuery);
@@ -97,6 +102,12 @@ export default function PlayerPerformancesList({ player }: { player: PlayerInfor
 						);
 					}
 
+					const beforeElos = CalculateElos(
+						Object.values(matches).filter((m) => m.id < (perf.match ?? 0)),
+					);
+
+					const eloDelta = CalculateEloDelta(player.id, beforeElos, match);
+
 					return (
 						<Popover>
 							<PopoverTrigger asChild>
@@ -160,10 +171,15 @@ export default function PlayerPerformancesList({ player }: { player: PlayerInfor
 										) : (
 											<span className="text-red-400">Lost</span>
 										)}
-										<span>
-											{JSON.stringify(
-												CalculateMatchImpact(perf.user ?? "", match),
-											)}
+										<span
+											className={
+												Math.floor(eloDelta) > 0
+													? "text-green-400"
+													: "text-red-400"
+											}
+										>
+											{Math.floor(eloDelta) > 0 ? "+" : ""}
+											{Math.floor(eloDelta)}
 										</span>
 									</div>
 									{perf.team == Team.RED ? (

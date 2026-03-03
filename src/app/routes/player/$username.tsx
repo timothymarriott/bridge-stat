@@ -27,7 +27,7 @@ function User() {
 	const res = usePlayerInfo(username);
 	const players = useQueryData(playersQuery, []);
 	const [kdr, setKDR] = useState<number>(1);
-	const [elos, setElos] = useState<Record<string, number>>({});
+
 	const [winCount, setWinCount] = useState<number>(0);
 	const [lossCount, setLossCount] = useState<number>(0);
 	const isMobile = useIsMobile();
@@ -81,8 +81,6 @@ function User() {
 
 			setWinCount(win_count);
 			setLossCount(loss_count);
-
-			setElos(CalculateElos(Object.values(matches)));
 		}
 	}, [res, matches]);
 	return (
@@ -166,19 +164,6 @@ function User() {
 									<ScrollArea className="h-full px-3">
 										<span>This will be more stats about the user.</span>
 										<br />
-										{Object.keys(elos).map((v) => {
-											const p = players.find((k) => k.exists && k.id == v);
-											return (
-												<>
-													{" "}
-													<span>
-														{p != undefined && p.exists && p.username} ={" "}
-														{Math.floor(elos[v])}
-													</span>{" "}
-													<br />{" "}
-												</>
-											);
-										})}
 									</ScrollArea>
 								</CardContent>
 							</Card>
