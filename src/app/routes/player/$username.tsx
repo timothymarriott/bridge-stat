@@ -1,13 +1,14 @@
 import { usePlayerInfo, useQueryData } from "@/app/auth-hooks";
 import MinecraftAvatar from "@/app/components/mc-avatar";
 import PlayerPerformancesList from "@/app/components/player-performances-list";
-import { matchesQuery } from "@/app/queries";
+import { matchesQuery, playersQuery } from "@/app/queries";
 import { router } from "@/app/router";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/spinner";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { CalculateElos } from "@/lib/stats";
 import { Team } from "@/worker/types";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
@@ -24,10 +25,13 @@ function User() {
 	const { username } = Route.useParams();
 	const matches = useQueryData(matchesQuery);
 	const res = usePlayerInfo(username);
+	const players = useQueryData(playersQuery, []);
 	const [kdr, setKDR] = useState<number>(1);
+	const [elos, setElos] = useState<Record<string, number>>({});
 	const [winCount, setWinCount] = useState<number>(0);
 	const [lossCount, setLossCount] = useState<number>(0);
 	const isMobile = useIsMobile();
+
 	useEffect(() => {
 		if (res != null && matches != null && res.exists) {
 			let total_kills = 0;
@@ -77,6 +81,8 @@ function User() {
 
 			setWinCount(win_count);
 			setLossCount(loss_count);
+
+			setElos(CalculateElos(Object.values(matches)));
 		}
 	}, [res, matches]);
 	return (
@@ -159,6 +165,20 @@ function User() {
 								<CardContent className="flex-1 min-h-0 px-1">
 									<ScrollArea className="h-full px-3">
 										<span>This will be more stats about the user.</span>
+										<br />
+										{Object.keys(elos).map((v) => {
+											const p = players.find((k) => k.exists && k.id == v);
+											return (
+												<>
+													{" "}
+													<span>
+														{p != undefined && p.exists && p.username} ={" "}
+														{Math.floor(elos[v])}
+													</span>{" "}
+													<br />{" "}
+												</>
+											);
+										})}
 									</ScrollArea>
 								</CardContent>
 							</Card>

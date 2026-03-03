@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutDashboardIcon, LogOut } from "lucide-react";
+import { LayoutDashboardIcon, LogOut, UploadIcon } from "lucide-react";
 import { SiDiscord, SiGoogle } from "@icons-pack/react-simple-icons";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -25,6 +25,8 @@ import { proxy } from "@/lib/utils";
 import { authQuery } from "@/app/queries";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
+import UploadMatchDialog from "../upload-match-dialog";
+import { DialogTrigger } from "@/components/ui/dialog";
 
 export function SidebarUser() {
 	const auth = useAuth();
@@ -39,14 +41,53 @@ export function SidebarUser() {
 		<SidebarMenu>
 			<SidebarMenuItem>
 				{auth.exists ? (
-					<DropdownMenu>
-						<DropdownMenuTrigger asChild>
-							<SidebarMenuButton
-								size="lg"
-								className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+					<UploadMatchDialog>
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<SidebarMenuButton
+									size="lg"
+									className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+								>
+									{auth.uuid == null ? (
+										<>
+											<Avatar className="h-8 w-8 rounded-lg">
+												<AvatarImage
+													src={proxy(auth.image ?? "")}
+													alt={auth.name}
+												/>
+											</Avatar>
+											<div className="grid flex-1 text-left text-sm leading-tight">
+												<span className="truncate font-medium">
+													{auth.name}
+												</span>
+												<span className="truncate text-xs">
+													{auth.email}
+												</span>
+											</div>
+										</>
+									) : (
+										<>
+											<MinecraftAvatar uuid={auth.uuid} />
+											<div className="grid flex-1 text-left text-sm leading-tight">
+												<span className="truncate font-bold">
+													{auth.username ?? auth.name}
+												</span>
+												<span className="truncate text-xs">
+													{auth.email}
+												</span>
+											</div>
+										</>
+									)}
+								</SidebarMenuButton>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent
+								className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+								side={sidebar.isMobile ? "bottom" : "right"}
+								align="end"
+								sideOffset={4}
 							>
-								{auth.uuid == null ? (
-									<>
+								<DropdownMenuLabel className="p-0 font-normal">
+									<div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
 										<Avatar className="h-8 w-8 rounded-lg">
 											<AvatarImage
 												src={proxy(auth.image ?? "")}
@@ -59,75 +100,52 @@ export function SidebarUser() {
 											</span>
 											<span className="truncate text-xs">{auth.email}</span>
 										</div>
+									</div>
+								</DropdownMenuLabel>
+								<DropdownMenuSeparator />
+
+								{(auth.is_admin ?? 0 > 0) ? (
+									<>
+										<DropdownMenuItem
+											onClick={() => {
+												router.navigate({
+													to: "/admin",
+												});
+											}}
+										>
+											<LayoutDashboardIcon />
+											Admin Dashboard
+										</DropdownMenuItem>
+
+										<DialogTrigger asChild>
+											<DropdownMenuItem>
+												<UploadIcon />
+												Upload Match
+											</DropdownMenuItem>
+										</DialogTrigger>
+
+										<DropdownMenuSeparator />
 									</>
 								) : (
-									<>
-										<MinecraftAvatar uuid={auth.uuid} />
-										<div className="grid flex-1 text-left text-sm leading-tight">
-											<span className="truncate font-bold">
-												{auth.username ?? auth.name}
-											</span>
-											<span className="truncate text-xs">{auth.email}</span>
-										</div>
-									</>
+									<></>
 								)}
-							</SidebarMenuButton>
-						</DropdownMenuTrigger>
-						<DropdownMenuContent
-							className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
-							side={sidebar.isMobile ? "bottom" : "right"}
-							align="end"
-							sideOffset={4}
-						>
-							<DropdownMenuLabel className="p-0 font-normal">
-								<div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-									<Avatar className="h-8 w-8 rounded-lg">
-										<AvatarImage
-											src={proxy(auth.image ?? "")}
-											alt={auth.name}
-										/>
-									</Avatar>
-									<div className="grid flex-1 text-left text-sm leading-tight">
-										<span className="truncate font-medium">{auth.name}</span>
-										<span className="truncate text-xs">{auth.email}</span>
-									</div>
-								</div>
-							</DropdownMenuLabel>
-							<DropdownMenuSeparator />
 
-							{(auth.is_admin ?? 0 > 0) ? (
-								<>
-									<DropdownMenuItem
-										onClick={() => {
-											router.navigate({
-												to: "/admin",
-											});
-										}}
-									>
-										<LayoutDashboardIcon />
-										Admin Dashboard
-									</DropdownMenuItem>
-									<DropdownMenuSeparator />
-								</>
-							) : (
-								<></>
-							)}
-
-							<DropdownMenuItem
-								variant="destructive"
-								onClick={async () => {
-									await better_auth.signOut();
-									router.navigate({
-										to: "/",
-									});
-									await queryClient.refetchQueries(authQuery);
-								}}
-							>
-								<LogOut />
-								Log out
-							</DropdownMenuItem>
-						</DropdownMenuContent>
-					</DropdownMenu>
+								<DropdownMenuItem
+									variant="destructive"
+									onClick={async () => {
+										await better_auth.signOut();
+										router.navigate({
+											to: "/",
+										});
+										await queryClient.refetchQueries(authQuery);
+									}}
+								>
+									<LogOut />
+									Log out
+								</DropdownMenuItem>
+							</DropdownMenuContent>
+						</DropdownMenu>
+					</UploadMatchDialog>
 				) : is_auth_loading ? (
 					<Skeleton className="w-full h-12">
 						<Button variant={"secondary"} disabled={true} className="w-full h-12">

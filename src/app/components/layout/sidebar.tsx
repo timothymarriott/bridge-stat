@@ -63,6 +63,7 @@ export function LayoutSidebar() {
 				>
 					<HomeIcon /> Home
 				</SidebarMenuButton>
+
 				<SidebarUser></SidebarUser>
 			</SidebarFooter>
 		</Sidebar>

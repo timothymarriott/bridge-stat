@@ -6,6 +6,7 @@ import { useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FullMatchInsertData } from "@/worker/types";
+import UploadMatchDialog from "../components/upload-match-dialog";
 
 export const Route = createFileRoute("/admin")({
 	beforeLoad: async ({ context }) => {
@@ -31,23 +32,6 @@ export function Admin() {
 		<div className="space-y-2">
 			<UserList />
 			<LinkRequestList />
-
-			<Input ref={inputref}></Input>
-			<Button
-				onClick={async () => {
-					if (!inputref.current) return;
-					const data: FullMatchInsertData[] = JSON.parse(inputref.current.value);
-					for (const element of data) {
-						await fetch("/api/admin/upload", {
-							credentials: "include",
-							method: "POST",
-							body: JSON.stringify(element),
-						});
-					}
-				}}
-			>
-				Upload
-			</Button>
 		</div>
 	);
 }

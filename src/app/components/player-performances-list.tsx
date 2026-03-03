@@ -11,6 +11,7 @@ import {
 	PopoverTrigger,
 } from "@/components/ui/popover";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { CalculateElos, CalculateMatchImpact, CalculateMatchScores } from "@/lib/stats";
 
 export default function PlayerPerformancesList({ player }: { player: PlayerInformation }) {
 	const matches = useQueryData(matchesQuery);
@@ -111,7 +112,7 @@ export default function PlayerPerformancesList({ player }: { player: PlayerInfor
 										<TeamInfo team={Team.BLUE} side="left" />
 									)}
 
-									<div className={"text-center grid grid-cols-3"}>
+									<div className={"text-center grid grid-cols-4"}>
 										<div>
 											<span
 												className={
@@ -159,6 +160,11 @@ export default function PlayerPerformancesList({ player }: { player: PlayerInfor
 										) : (
 											<span className="text-red-400">Lost</span>
 										)}
+										<span>
+											{JSON.stringify(
+												CalculateMatchImpact(perf.user ?? "", match),
+											)}
+										</span>
 									</div>
 									{perf.team == Team.RED ? (
 										<TeamInfo team={Team.BLUE} side="right" />
