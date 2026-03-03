@@ -17,12 +17,17 @@ import { useQueryData } from "@/app/auth-hooks";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { CalculateElos } from "@/lib/stats";
+import { useEffect, useState } from "react";
 
 export function LayoutSidebar() {
 	const player_list: OptionalPlayerInformation[] | null = useQueryData(playersQuery);
 	const matches = useQueryData(matchesQuery, {});
 
-	const elos = CalculateElos(Object.values(matches));
+	const [elos, setElos] = useState<Record<string, number>>({});
+
+	useEffect(() => {
+		setElos(CalculateElos(player_list ?? [], Object.values(matches)));
+	}, [matches]);
 
 	return (
 		<Sidebar collapsible="icon" variant="floating">

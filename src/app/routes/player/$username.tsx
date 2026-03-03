@@ -25,7 +25,6 @@ function User() {
 	const { username } = Route.useParams();
 	const matches = useQueryData(matchesQuery);
 	const res = usePlayerInfo(username);
-	const players = useQueryData(playersQuery, []);
 	const [kdr, setKDR] = useState<number>(1);
 
 	const [winCount, setWinCount] = useState<number>(0);
@@ -49,9 +48,6 @@ function User() {
 				if (perf.match == null) return null;
 
 				const match = matches[perf.match];
-
-				console.log(match.id, match.winner, perf.team);
-				console.log(perf.team);
 
 				let red_scores = 0;
 				let blue_scores = 0;
