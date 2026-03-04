@@ -1,15 +1,22 @@
 import { Match, OptionalPlayerInformation } from "@/worker/types";
-import { rate, Rating, quality } from "ts-trueskill";
+import { rate, Rating } from "ts-trueskill";
+
+export type EloInformation = {
+	finalScores: Record<string, number>;
+	deltas: Record<string, Record<string, number>>;
+};
 
 export function CalculateElos(
 	players: OptionalPlayerInformation[],
 	matches: Match[],
-): Record<string, number> {
+): EloInformation {
 	const ratings: Record<string, Rating> = {};
 
 	for (const p of players) {
-		if (p.exists && p.username != "Plac3h0lder") ratings[p.id] = new Rating();
+		if (p.exists) ratings[p.id] = new Rating();
 	}
+
+	const deltas: Record<string, Record<string, number>> = {};
 
 	for (const match of matches) {
 		let redTeam = match.red_players.map((p) => {
@@ -48,12 +55,20 @@ export function CalculateElos(
 
 		const [newRed, newBlue] = rate([redTeam, blueTeam], ranks);
 
+		deltas[match.id] = {};
+
 		match.red_players.forEach((p, i) => {
-			ratings[p.user ?? ""] = newRed[i];
+			const old = ratings[p.user ?? ""];
+			if (old == undefined) return;
+			deltas[match.id][p.user!] = newRed[i].mu * 100 - 1000 - (old.mu * 100 - 1000);
+			ratings[p.user!] = newRed[i];
 		});
 
 		match.blue_players.forEach((p, i) => {
-			ratings[p.user ?? ""] = newBlue[i];
+			const old = ratings[p.user ?? ""];
+			if (old == undefined) return;
+			deltas[match.id][p.user!] = newBlue[i].mu * 100 - 1000 - (old.mu * 100 - 1000);
+			ratings[p.user!] = newBlue[i];
 		});
 	}
 
@@ -63,5 +78,8 @@ export function CalculateElos(
 		elos[id] = ratings[id].mu * 100 - 1000;
 	}
 
-	return elos;
+	return {
+		finalScores: elos,
+		deltas: deltas,
+	};
 }

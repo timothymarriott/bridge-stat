@@ -16,14 +16,14 @@ import MinecraftAvatar from "../mc-avatar";
 import { useQueryData } from "@/app/auth-hooks";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
-import { CalculateElos } from "@/lib/stats";
+import { CalculateElos, EloInformation } from "@/lib/stats";
 import { useEffect, useState } from "react";
 
 export function LayoutSidebar() {
 	const player_list: OptionalPlayerInformation[] | null = useQueryData(playersQuery);
 	const matches = useQueryData(matchesQuery, {});
 
-	const [elos, setElos] = useState<Record<string, number>>({});
+	const [elos, setElos] = useState<EloInformation | null>(null);
 
 	useEffect(() => {
 		if (player_list != null) setElos(CalculateElos(player_list, Object.values(matches)));
@@ -38,9 +38,10 @@ export function LayoutSidebar() {
 						player_list
 							.sort((a, b) => {
 								if (!a.exists || !b.exists) return 0;
-								if (elos[b.id] == undefined) return -1;
-								if (elos[a.id] == undefined) return 1;
-								return elos[b.id] - elos[a.id];
+								if (elos == null) return 0;
+								if (elos.finalScores[b.id] == undefined) return -1;
+								if (elos.finalScores[a.id] == undefined) return 1;
+								return elos.finalScores[b.id] - elos.finalScores[a.id];
 							})
 							.map((player) => {
 								if (!player.exists) return null;
@@ -57,9 +58,12 @@ export function LayoutSidebar() {
 										<MinecraftAvatar size="size-6" uuid={player.uuid} />
 										<div className="w-full justify-between flex flex-row">
 											<span>{player.username}</span>
-											{elos[player.id] != undefined ? (
+											{elos != null &&
+											elos.finalScores[player.id] != undefined ? (
 												<span className="text-accent-foreground">
-													{Math.floor(elos[player.id]).toString()}
+													{Math.floor(
+														elos.finalScores[player.id],
+													).toString()}
 												</span>
 											) : null}
 										</div>

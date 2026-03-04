@@ -17,46 +17,32 @@ import {
 	PopoverTrigger,
 } from "@/components/ui/popover";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { CalculateElos } from "@/lib/stats";
+import { CalculateElos, EloInformation } from "@/lib/stats";
 import { useEffect, useState } from "react";
 
 export default function PlayerPerformancesList({ player }: { player: PlayerInformation }) {
 	const matches = useQueryData(matchesQuery);
 	const players = useQueryData(playersQuery, []);
 
-	const [eloDeltas, setEloDeltas] = useState<number[]>([]);
+	const [elos, setElos] = useState<EloInformation | null>(null);
 
 	useEffect(() => {
 		if (matches != null) {
-			const deltas: number[] = [];
+			const elo = CalculateElos(players, Object.values(matches));
 
-			player.performances.map((perf, i) => {
-				if (perf.match == null) return null;
-				const beforeElos = CalculateElos(
-					players,
-					Object.values(matches).filter((m) => m.id < (perf.match ?? 0)),
-				);
-
-				const afterElos = CalculateElos(
-					players,
-					Object.values(matches).filter((m) => m.id <= (perf.match ?? 0)),
-				);
-
-				deltas.push(afterElos[player.id] - beforeElos[player.id]);
-			});
-
-			setEloDeltas(deltas);
+			setElos(elo);
 		}
 	}, [matches]);
 
 	return (
 		<div className="space-y-1">
 			{matches != null &&
+				elos != null &&
 				player.performances.map((perf, i) => {
 					return (
 						<PerformanceDisplay
 							key={i}
-							eloDeltas={eloDeltas}
+							elos={elos}
 							matches={matches}
 							i={i}
 							perf={perf}
@@ -72,14 +58,14 @@ function PerformanceDisplay({
 	perf,
 	i,
 	matches,
-	eloDeltas,
+	elos,
 	players,
 }: {
 	matches: Record<string, Match>;
 	perf: PlayerPerformance;
 	i: number;
 	players: OptionalPlayerInformation[];
-	eloDeltas: number[];
+	elos: EloInformation;
 }) {
 	if (perf.match == null) return null;
 
@@ -210,13 +196,15 @@ function PerformanceDisplay({
 								{hovered ? (
 									<span
 										className={
-											Math.floor(eloDeltas[i]) > 0
+											Math.floor(elos.deltas[match.id][perf.user!]) > 0
 												? "text-green-400"
 												: "text-red-400"
 										}
 									>
-										{Math.floor(eloDeltas[i]) > 0 ? "+" : ""}
-										{Math.floor(eloDeltas[i])}
+										{Math.floor(elos.deltas[match.id][perf.user!]) > 0
+											? "+"
+											: ""}
+										{Math.floor(elos.deltas[match.id][perf.user!])}
 									</span>
 								) : (
 									"Won"
@@ -231,13 +219,15 @@ function PerformanceDisplay({
 								{hovered ? (
 									<span
 										className={
-											Math.floor(eloDeltas[i]) > 0
+											Math.floor(elos.deltas[match.id][perf.user!]) > 0
 												? "text-green-400"
 												: "text-red-400"
 										}
 									>
-										{Math.floor(eloDeltas[i]) > 0 ? "+" : ""}
-										{Math.floor(eloDeltas[i])}
+										{Math.floor(elos.deltas[match.id][perf.user!]) > 0
+											? "+"
+											: ""}
+										{Math.floor(elos.deltas[match.id][perf.user!])}
 									</span>
 								) : (
 									"Lost"
