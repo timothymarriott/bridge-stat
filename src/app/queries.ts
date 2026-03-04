@@ -1,4 +1,5 @@
 import type {
+	Match,
 	OptionalPlayerInformation,
 	OptionalUserInformation,
 	UserInformation,
@@ -66,6 +67,21 @@ export const matchesQuery = createQuery({
 		const res = await api_client.api.matches.$get();
 		if (!res.ok) return {};
 		const data = await res.json();
+
+		Object.keys(data).forEach((k) => {
+			let red_scores = 0;
+			data[k].red_players.forEach((p) => (red_scores += p.scores));
+			let blue_scores = 0;
+			data[k].blue_players.forEach((p) => (blue_scores += p.scores));
+
+			const updated: Match = {
+				...data[k],
+				red_scores: red_scores,
+				blue_scores: blue_scores,
+			};
+			data[k] = updated;
+		});
+
 		return data;
 	},
 });

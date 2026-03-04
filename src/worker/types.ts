@@ -22,10 +22,7 @@ export type MatchPlayerInsertData = {
 };
 export type FullMatchInsertData = {
 	duration: number;
-	winner: Team;
 	map: string;
-	red_scores: number;
-	blue_scores: number;
 	red_players: MatchPlayerInsertData[];
 	blue_players: MatchPlayerInsertData[];
 };

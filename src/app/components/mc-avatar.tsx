@@ -1,9 +1,10 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import React from "react";
 import { ReactNode } from "react";
 
-export default function MinecraftAvatar({
+function minecraftAvatar({
 	uuid,
 	size,
 	tooltip,
@@ -23,6 +24,8 @@ export default function MinecraftAvatar({
 		<InternalAvatar uuid={uuid} size={size}></InternalAvatar>
 	);
 }
+
+export default React.memo(minecraftAvatar);
 
 function InternalAvatar({ uuid, size }: { uuid: string; size?: string }) {
 	return (
