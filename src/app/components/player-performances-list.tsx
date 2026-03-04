@@ -19,10 +19,21 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile";
 import { CalculateElos, EloInformation } from "@/lib/stats";
 import { useEffect, useState } from "react";
+import { FilterState, SortMode } from "../routes/player/$username";
 
-export default function PlayerPerformancesList({ player }: { player: PlayerInformation }) {
+export default function PlayerPerformancesList({
+	player,
+	sortMode,
+	filterState,
+}: {
+	player: PlayerInformation;
+	sortMode: SortMode;
+	filterState: FilterState;
+}) {
 	const matches = useQueryData(matchesQuery);
 	const players = useQueryData(playersQuery, []);
+
+	const [performances, setPerformances] = useState<PlayerPerformance[]>([]);
 
 	const [elos, setElos] = useState<EloInformation | null>(null);
 
@@ -31,26 +42,69 @@ export default function PlayerPerformancesList({ player }: { player: PlayerInfor
 			const elo = CalculateElos(players, Object.values(matches));
 
 			setElos(elo);
+
+			setPerformances(
+				player.performances
+					.filter((a) => {
+						if (filterState.filterTeamCount) {
+							if (!a.match) return false;
+							const match = matches[a.match];
+							if (!match) return false;
+
+							const me_count =
+								a.team == Team.RED
+									? match.red_players.length
+									: match.blue_players.length;
+							const them_count =
+								a.team == Team.RED
+									? match.blue_players.length
+									: match.red_players.length;
+
+							return (
+								me_count == filterState.yourTeamCount &&
+								them_count == filterState.theirTeamCount
+							);
+						}
+
+						return true;
+					})
+					.sort((a, b) => {
+						if (sortMode == SortMode.OldToNew) {
+							return a.id - b.id;
+						}
+						if (sortMode == SortMode.NewToOld) {
+							return b.id - a.id;
+						}
+						return 0;
+					}),
+			);
 		}
-	}, [matches]);
+	}, [matches, filterState, sortMode]);
 
 	return (
-		<div className="space-y-1">
-			{matches != null &&
-				elos != null &&
-				player.performances.map((perf, i) => {
-					return (
-						<PerformanceDisplay
-							key={i}
-							elos={elos}
-							matches={matches}
-							i={i}
-							perf={perf}
-							players={players}
-						/>
-					);
-				})}
-		</div>
+		<>
+			<div className="space-y-1">
+				{matches != null &&
+					elos != null &&
+					performances.length > 0 &&
+					performances.map((perf, i) => {
+						return (
+							<PerformanceDisplay
+								key={i}
+								elos={elos}
+								matches={matches}
+								i={i}
+								perf={perf}
+								players={players}
+							/>
+						);
+					})}
+
+				{performances.length == 0 ? (
+					<span>No matches found with these filters.</span>
+				) : null}
+			</div>
+		</>
 	);
 }
 
@@ -109,31 +163,39 @@ function PerformanceDisplay({
 						(team == Team.RED ? "bg-red-500/80" : "bg-blue-600/80")
 					}
 				>
-					{performances.map((p, i) => {
-						const player = players.find((_p) => {
-							if (!_p.exists || !_p) return false;
-							return _p.id == p.user;
-						});
-						if (player == undefined || !player.exists) return null;
-						return (
-							<MinecraftAvatar
-								key={i}
-								size="size-5"
-								uuid={player.uuid}
-								tooltip={
-									isMobile ? undefined : (
-										<>
-											<span>{player.username ?? ""}</span> <br />
-											<span>Goals: {p.scores}</span> <br />
-											<span>Kills: {p.kills}</span> <br />
-											<span>Deaths: {p.deaths}</span> <br />
-											<span>Voids: {p.voids}</span>
-										</>
-									)
-								}
-							/>
-						);
-					})}
+					{performances
+						.sort((a, b) => {
+							const a_p = players.find((p) => p.exists && p.id == a.user);
+							const b_p = players.find((p) => p.exists && p.id == b.user);
+							if (!a_p || !a_p.exists || !a_p.username) return 1;
+							if (!b_p || !b_p.exists || !b_p.username) return -1;
+							return a_p.username.localeCompare(b_p.username);
+						})
+						.map((p, i) => {
+							const player = players.find((_p) => {
+								if (!_p.exists || !_p) return false;
+								return _p.id == p.user;
+							});
+							if (player == undefined || !player.exists) return null;
+							return (
+								<MinecraftAvatar
+									key={i}
+									size="size-5"
+									uuid={player.uuid}
+									tooltip={
+										isMobile ? undefined : (
+											<>
+												<span>{player.username ?? ""}</span> <br />
+												<span>Goals: {p.scores}</span> <br />
+												<span>Kills: {p.kills}</span> <br />
+												<span>Deaths: {p.deaths}</span> <br />
+												<span>Voids: {p.voids}</span>
+											</>
+										)
+									}
+								/>
+							);
+						})}
 				</div>
 			</div>
 		);

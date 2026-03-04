@@ -5,13 +5,33 @@ import { matchesQuery, playersQuery } from "@/app/queries";
 import { router } from "@/app/router";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+	Dialog,
+	DialogClose,
+	DialogContent,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+	Select,
+	SelectContent,
+	SelectGroup,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
+import { Switch } from "@/components/ui/switch";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { CalculateElos } from "@/lib/stats";
-import { Team } from "@/worker/types";
+import { PlayerInformation, Team } from "@/worker/types";
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/player/$username")({
 	beforeLoad: async ({ context }) => {
@@ -20,6 +40,31 @@ export const Route = createFileRoute("/player/$username")({
 	},
 	component: User,
 });
+
+export enum SortMode {
+	NewToOld = "new_to_old",
+	OldToNew = "old_to_new",
+}
+
+export type FilterState = {
+	filterTeamCount: boolean;
+	yourTeamCount: number;
+	theirTeamCount: number;
+};
+
+function PerformanceList({
+	player,
+	sortMode,
+	filterState,
+}: {
+	player: PlayerInformation;
+	sortMode: SortMode;
+	filterState: FilterState;
+}) {
+	return <PlayerPerformancesList player={player} sortMode={sortMode} filterState={filterState} />;
+}
+
+const PerformanceListComponent = React.memo(PerformanceList);
 
 function User() {
 	const { username } = Route.useParams();
@@ -79,6 +124,19 @@ function User() {
 			setLossCount(loss_count);
 		}
 	}, [res, matches]);
+
+	const [sortMode, setSortMode] = useState<SortMode>(SortMode.NewToOld);
+	const [filterState, setFilterState] = useState<FilterState>({
+		filterTeamCount: false,
+		theirTeamCount: 3,
+		yourTeamCount: 3,
+	});
+	const [tempFilterState, setTempFilterState] = useState<FilterState>({
+		filterTeamCount: false,
+		theirTeamCount: 3,
+		yourTeamCount: 3,
+	});
+
 	return (
 		<div className="flex flex-col h-full space-y-2">
 			{res == null || matches == null ? (
@@ -132,7 +190,11 @@ function User() {
 							</CardHeader>
 							<CardContent className="flex-1 min-h-0 px-1">
 								<ScrollArea className="h-full px-3">
-									<PlayerPerformancesList player={res} />
+									<PlayerPerformancesList
+										player={res}
+										sortMode={sortMode}
+										filterState={filterState}
+									/>
 								</ScrollArea>
 							</CardContent>
 						</Card>
@@ -146,10 +208,112 @@ function User() {
 							>
 								<CardHeader>
 									<CardTitle>Performances</CardTitle>
+									<div className="flex flex-row space-x-1 items-center">
+										<Dialog>
+											<DialogTrigger asChild>
+												<Button variant={"secondary"}>Filters</Button>
+											</DialogTrigger>
+											<DialogContent>
+												<DialogHeader>
+													<DialogTitle>Filters</DialogTitle>
+												</DialogHeader>
+												<div className="flex flex-row space-x-1 items-center">
+													<Switch
+														checked={tempFilterState.filterTeamCount}
+														onCheckedChange={(v) => {
+															setTempFilterState((o) => {
+																return {
+																	...o,
+																	filterTeamCount: v,
+																};
+															});
+														}}
+													/>
+													<span>Player Count</span>
+												</div>
+												{tempFilterState.filterTeamCount ? (
+													<div className="space-y-2">
+														<Label>Your Team</Label>
+														<Input
+															defaultValue={
+																tempFilterState.yourTeamCount
+															}
+															type="number"
+															onChange={(v) => {
+																setTempFilterState((o) => {
+																	return {
+																		...o,
+																		yourTeamCount:
+																			Number.parseInt(
+																				v.target.value,
+																			),
+																	};
+																});
+															}}
+														></Input>
+
+														<Label>Other Team</Label>
+														<Input
+															defaultValue={
+																tempFilterState.theirTeamCount
+															}
+															type="number"
+															onChange={(v) => {
+																setTempFilterState((o) => {
+																	return {
+																		...o,
+																		theirTeamCount:
+																			Number.parseInt(
+																				v.target.value,
+																			),
+																	};
+																});
+															}}
+														></Input>
+													</div>
+												) : null}
+												<DialogFooter>
+													<DialogClose
+														asChild
+														onClick={() => {
+															setFilterState(tempFilterState);
+														}}
+													>
+														<Button>Apply</Button>
+													</DialogClose>
+												</DialogFooter>
+											</DialogContent>
+										</Dialog>
+										<span>Sort</span>
+										<Select
+											onValueChange={(v) => {
+												setSortMode(v as SortMode);
+											}}
+											defaultValue="new_to_old"
+										>
+											<SelectTrigger>
+												<SelectValue />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectGroup>
+													<SelectItem value="new_to_old">
+														New To Old
+													</SelectItem>
+													<SelectItem value="old_to_new">
+														Old To New
+													</SelectItem>
+												</SelectGroup>
+											</SelectContent>
+										</Select>
+									</div>
 								</CardHeader>
 								<CardContent className="flex-1 min-h-0 px-1">
 									<ScrollArea className="h-full px-3">
-										<PlayerPerformancesList player={res} />
+										<PerformanceListComponent
+											player={res}
+											sortMode={sortMode}
+											filterState={filterState}
+										/>
 									</ScrollArea>
 								</CardContent>
 							</Card>

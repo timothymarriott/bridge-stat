@@ -12,6 +12,7 @@
         "publish": true
     },
     "dependencies": {
+        "@base-ui/react": "^1.2.0",
         "@hono/node-server": "^1.19.9",
         "@icons-pack/react-simple-icons": "^13.11.2",
         "@tailwindcss/vite": "^4.2.0",
