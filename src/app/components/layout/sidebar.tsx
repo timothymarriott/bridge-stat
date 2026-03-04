@@ -10,7 +10,6 @@ import {
 import { SidebarUser } from "./sidebar-user";
 import { HomeIcon } from "lucide-react";
 import { router } from "@/app/router";
-import { OptionalPlayerInformation } from "@/worker/types";
 import { matchesQuery, playersQuery } from "@/app/queries";
 import MinecraftAvatar from "../mc-avatar";
 import { useQueryData } from "@/app/auth-hooks";
@@ -20,14 +19,15 @@ import { CalculateElos, EloInformation } from "@/lib/stats";
 import { useEffect, useState } from "react";
 
 export function LayoutSidebar() {
-	const player_list: OptionalPlayerInformation[] | null = useQueryData(playersQuery);
-	const matches = useQueryData(matchesQuery, {});
+	const player_list = useQueryData(playersQuery);
+	const matches = useQueryData(matchesQuery);
 
 	const [elos, setElos] = useState<EloInformation | null>(null);
 
 	useEffect(() => {
-		if (player_list != null) setElos(CalculateElos(player_list, Object.values(matches)));
-	}, [matches]);
+		if (player_list != null && matches != null)
+			setElos(CalculateElos(player_list, Object.values(matches)));
+	}, [matches, player_list]);
 
 	return (
 		<Sidebar collapsible="icon" variant="floating">

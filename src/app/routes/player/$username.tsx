@@ -112,7 +112,9 @@ function User() {
 							<span className="font-extrabold">•</span>
 							<div>
 								<span className="font-bold">
-									{Math.round((winCount / (winCount + lossCount)) * 100)}
+									{winCount + lossCount > 0
+										? Math.round((winCount / (winCount + lossCount)) * 100)
+										: 0}
 								</span>
 								<span className="text-accent-foreground/50">% winrate</span>
 							</div>
