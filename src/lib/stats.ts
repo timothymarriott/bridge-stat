@@ -1,10 +1,20 @@
 import { Match, OptionalPlayerInformation } from "@/worker/types";
 import { rate, Rating } from "ts-trueskill";
 
-export type EloInformation = {
-	finalScores: Record<string, number>;
-	deltas: Record<string, Record<string, number>>;
+export type MatchEloInformation = {
+	match: Match;
+	deltas: Record<string, number>;
+	totals: Record<string, Rating>;
 };
+
+export type EloInformation = {
+	finalScores: Record<string, Rating>;
+	matches: Record<string, MatchEloInformation>;
+};
+
+export function GetELO(score: Rating) {
+	return score.mu * 100 - 1000;
+}
 
 export function CalculateElos(
 	players: OptionalPlayerInformation[],
@@ -16,7 +26,7 @@ export function CalculateElos(
 		if (p.exists) ratings[p.id] = new Rating();
 	}
 
-	const deltas: Record<string, Record<string, number>> = {};
+	const deltas: Record<string, MatchEloInformation> = {};
 
 	for (const match of matches) {
 		let redTeam = match.red_players.map((p) => {
@@ -55,31 +65,31 @@ export function CalculateElos(
 
 		const [newRed, newBlue] = rate([redTeam, blueTeam], ranks);
 
-		deltas[match.id] = {};
+		deltas[match.id] = {
+			match: match,
+			deltas: {},
+			totals: {},
+		};
 
 		match.red_players.forEach((p, i) => {
 			const old = ratings[p.user ?? ""];
 			if (old == undefined) return;
-			deltas[match.id][p.user!] = newRed[i].mu * 100 - 1000 - (old.mu * 100 - 1000);
+			deltas[match.id].deltas[p.user!] = GetELO(newRed[i]) - GetELO(old);
+			deltas[match.id].totals[p.user!] = newRed[i];
 			ratings[p.user!] = newRed[i];
 		});
 
 		match.blue_players.forEach((p, i) => {
 			const old = ratings[p.user ?? ""];
 			if (old == undefined) return;
-			deltas[match.id][p.user!] = newBlue[i].mu * 100 - 1000 - (old.mu * 100 - 1000);
+			deltas[match.id].deltas[p.user!] = GetELO(newBlue[i]) - GetELO(old);
+			deltas[match.id].totals[p.user!] = newBlue[i];
 			ratings[p.user!] = newBlue[i];
 		});
 	}
 
-	const elos: Record<string, number> = {};
-
-	for (const id in ratings) {
-		elos[id] = ratings[id].mu * 100 - 1000;
-	}
-
 	return {
-		finalScores: elos,
-		deltas: deltas,
+		finalScores: ratings,
+		matches: deltas,
 	};
 }

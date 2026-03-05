@@ -1,5 +1,6 @@
 import { usePlayerInfo, useQueryData } from "@/app/auth-hooks";
 import MinecraftAvatar from "@/app/components/mc-avatar";
+import PlayerDetails from "@/app/components/player-details";
 import PlayerPerformancesList from "@/app/components/player-performances-list";
 import { matchesQuery, playersQuery } from "@/app/queries";
 import { router } from "@/app/router";
@@ -28,7 +29,7 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { CalculateElos } from "@/lib/stats";
+import { CalculateElos, EloInformation } from "@/lib/stats";
 import { PlayerInformation, Team } from "@/worker/types";
 import { createFileRoute } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
@@ -73,18 +74,28 @@ function User() {
 	const [kdr, setKDR] = useState<number>(1);
 
 	const [winCount, setWinCount] = useState<number>(0);
+	const [goalsPerGame, setGoalsPerGame] = useState<number>(0);
 	const [lossCount, setLossCount] = useState<number>(0);
 	const isMobile = useIsMobile();
+
+	const players = useQueryData(playersQuery, []);
+
+	const [elos, setElos] = useState<EloInformation | null>(null);
 
 	useEffect(() => {
 		if (res != null && matches != null && res.exists) {
 			let total_kills = 0;
 			let total_deaths = 0;
+
+			let total_goals = 0;
+
 			for (let i = 0; i < res.performances.length; i++) {
 				total_kills += res.performances[i].kills;
 				total_deaths += res.performances[i].deaths;
+				total_goals += res.performances[i].scores;
 			}
 			setKDR(total_kills / total_deaths);
+			setGoalsPerGame(total_goals / res.performances.length);
 
 			let win_count = 0;
 			let loss_count = 0;
@@ -124,6 +135,14 @@ function User() {
 			setLossCount(loss_count);
 		}
 	}, [res, matches]);
+
+	useEffect(() => {
+		if (matches != null && players.length > 0) {
+			const elo = CalculateElos(players, Object.values(matches));
+
+			setElos(elo);
+		}
+	}, [matches, players]);
 
 	const [sortMode, setSortMode] = useState<SortMode>(SortMode.NewToOld);
 	const [filterState, setFilterState] = useState<FilterState>({
@@ -180,6 +199,17 @@ function User() {
 							<div>
 								<span className="text-accent-foreground/50">kdr </span>
 								<span className="font-bold">{Math.round(kdr * 100) / 100}</span>
+							</div>
+
+							<span className="font-extrabold">•</span>
+							<div>
+								<span className="font-bold">
+									{Math.round(goalsPerGame * 100) / 100}
+								</span>
+								<span className="text-accent-foreground/50">
+									{" "}
+									goals per game on average
+								</span>
 							</div>
 						</CardContent>
 					</Card>
@@ -324,8 +354,16 @@ function User() {
 								</CardHeader>
 								<CardContent className="flex-1 min-h-0 px-1">
 									<ScrollArea className="h-full px-3">
-										<span>This will be more stats about the user.</span>
-										<br />
+										{elos != null ? (
+											<>
+												<PlayerDetails
+													player={res}
+													elos={elos}
+													players={players}
+													matches={matches}
+												/>
+											</>
+										) : null}
 									</ScrollArea>
 								</CardContent>
 							</Card>

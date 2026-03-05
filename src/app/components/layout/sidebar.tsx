@@ -15,7 +15,7 @@ import MinecraftAvatar from "../mc-avatar";
 import { useQueryData } from "@/app/auth-hooks";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
-import { CalculateElos, EloInformation } from "@/lib/stats";
+import { CalculateElos, EloInformation, GetELO } from "@/lib/stats";
 import { useEffect, useState } from "react";
 
 export function LayoutSidebar() {
@@ -41,7 +41,7 @@ export function LayoutSidebar() {
 								if (elos == null) return 0;
 								if (elos.finalScores[b.id] == undefined) return -1;
 								if (elos.finalScores[a.id] == undefined) return 1;
-								return elos.finalScores[b.id] - elos.finalScores[a.id];
+								return elos.finalScores[b.id].mu - elos.finalScores[a.id].mu;
 							})
 							.map((player) => {
 								if (!player.exists) return null;
@@ -62,7 +62,7 @@ export function LayoutSidebar() {
 											elos.finalScores[player.id] != undefined ? (
 												<span className="text-accent-foreground">
 													{Math.floor(
-														elos.finalScores[player.id],
+														GetELO(elos.finalScores[player.id]),
 													).toString()}
 												</span>
 											) : null}

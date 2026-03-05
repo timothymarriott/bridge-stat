@@ -38,7 +38,7 @@ export default function PlayerPerformancesList({
 	const [elos, setElos] = useState<EloInformation | null>(null);
 
 	useEffect(() => {
-		if (matches != null) {
+		if (matches != null && players.length > 0) {
 			const elo = CalculateElos(players, Object.values(matches));
 
 			setElos(elo);
@@ -79,7 +79,7 @@ export default function PlayerPerformancesList({
 					}),
 			);
 		}
-	}, [matches, filterState, sortMode]);
+	}, [matches, players, filterState, sortMode]);
 
 	return (
 		<>
@@ -258,15 +258,16 @@ function PerformanceDisplay({
 								{hovered ? (
 									<span
 										className={
-											Math.floor(elos.deltas[match.id][perf.user!]) > 0
+											Math.floor(elos.matches[match.id].deltas[perf.user!]) >
+											0
 												? "text-green-400"
 												: "text-red-400"
 										}
 									>
-										{Math.floor(elos.deltas[match.id][perf.user!]) > 0
+										{Math.floor(elos.matches[match.id].deltas[perf.user!]) > 0
 											? "+"
 											: ""}
-										{Math.floor(elos.deltas[match.id][perf.user!])}
+										{Math.floor(elos.matches[match.id].deltas[perf.user!])}
 									</span>
 								) : (
 									"Won"
@@ -281,15 +282,16 @@ function PerformanceDisplay({
 								{hovered ? (
 									<span
 										className={
-											Math.floor(elos.deltas[match.id][perf.user!]) > 0
+											Math.floor(elos.matches[match.id].deltas[perf.user!]) >
+											0
 												? "text-green-400"
 												: "text-red-400"
 										}
 									>
-										{Math.floor(elos.deltas[match.id][perf.user!]) > 0
+										{Math.floor(elos.matches[match.id].deltas[perf.user!]) > 0
 											? "+"
 											: ""}
-										{Math.floor(elos.deltas[match.id][perf.user!])}
+										{Math.floor(elos.matches[match.id].deltas[perf.user!])}
 									</span>
 								) : (
 									"Lost"
