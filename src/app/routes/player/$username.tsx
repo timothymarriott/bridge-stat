@@ -82,6 +82,16 @@ function User() {
 
 	const [elos, setElos] = useState<EloInformation | null>(null);
 
+	const [selectedMatch, setSelectedMatch] = useState<number>(-1);
+
+	const ctxValue = React.useMemo(
+		() => ({
+			selected: selectedMatch,
+			setSelected: setSelectedMatch,
+		}),
+		[selectedMatch],
+	);
+
 	useEffect(() => {
 		if (res != null && matches != null && res.exists) {
 			let total_kills = 0;
@@ -220,7 +230,7 @@ function User() {
 							</CardHeader>
 							<CardContent className="flex-1 min-h-0 px-1">
 								<ScrollArea className="h-full px-3">
-									<PlayerPerformancesList
+									<PerformanceListComponent
 										player={res}
 										sortMode={sortMode}
 										filterState={filterState}

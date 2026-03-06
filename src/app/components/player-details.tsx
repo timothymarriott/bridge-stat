@@ -4,11 +4,15 @@ import {
 	ChartTooltip,
 	ChartTooltipContent,
 } from "@/components/ui/chart";
+import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EloInformation, GetELO, MatchEloInformation } from "@/lib/stats";
-import { Match, OptionalPlayerInformation, PlayerInformation } from "@/worker/types";
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { Match, OptionalPlayerInformation, PlayerInformation, Team } from "@/worker/types";
+import React from "react";
+import { Area, AreaChart, CartesianGrid, ReferenceArea, XAxis, YAxis } from "recharts";
 import { Rating } from "ts-trueskill";
+import { TeamInfo } from "./player-performances-list";
+import { MatchInfo } from "./match-info";
 
 const eloChartConfig = {
 	elo: {
@@ -72,7 +76,7 @@ export default function PlayerDetails({
 		if (v.totals[player.id] != undefined && performance != undefined) {
 			totalMatches++;
 			eloChartData.push({
-				date: eloChartData.length,
+				date: eloChartData.length + 1,
 				elo: GetELO(v.totals[player.id]),
 				confidence: v.totals[player.id].pi * 1500,
 				rating: v.totals[player.id],
@@ -103,12 +107,13 @@ export default function PlayerDetails({
 			}
 
 			winsChartData.push({
-				date: winsChartData.length,
+				date: winsChartData.length + 1,
 				win: totalWin / totalMatches,
 				loss: totalLoss / totalMatches,
 			});
 		}
 	});
+
 	return (
 		<>
 			<Tabs defaultValue="elo">
@@ -143,37 +148,25 @@ export default function PlayerDetails({
 													rating: Rating;
 													info: MatchEloInformation;
 												};
+
+												const match = payload.info.match;
+
+												const perf = [
+													...payload.info.match.blue_players,
+													...payload.info.match.red_players,
+												].find((p) => p.user == player.id);
+												if (perf == undefined) {
+													return null;
+												}
+
 												return (
-													<div className="space-x-1">
-														<span>
-															{Math.floor(GetELO(payload.rating))} Elo
-														</span>
-														<span
-															className={
-																Math.floor(
-																	payload.info.deltas[player.id],
-																) > 0
-																	? "text-green-400"
-																	: "text-red-400"
-															}
-														>
-															{Math.floor(
-																payload.info.deltas[player.id],
-															) > 0
-																? "+"
-																: "-"}
-															{Math.abs(
-																Math.floor(
-																	payload.info.deltas[player.id],
-																),
-															)}
-														</span>
-														<br />
-														<span>
-															{Math.round(payload.rating.pi * 100)}%
-															Confident
-														</span>
-													</div>
+													<MatchInfo
+														players={players}
+														player={player}
+														eloInfo={payload.info}
+														match={match}
+														perf={perf}
+													/>
 												);
 											}
 										}}
@@ -241,7 +234,7 @@ export default function PlayerDetails({
 							}}
 						>
 							<CartesianGrid vertical={false} />
-							<XAxis dataKey="date" tickMargin={8} label={"Match"} />
+							<XAxis dataKey="date" tickMargin={8} />
 							<YAxis dataKey="win" tickMargin={8} />
 							<ChartTooltip
 								cursor={true}

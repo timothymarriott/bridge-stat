@@ -4,7 +4,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import React from "react";
 import { ReactNode } from "react";
 
-function minecraftAvatar({
+export default function MinecraftAvatar({
 	uuid,
 	size,
 	tooltip,
@@ -16,16 +16,16 @@ function minecraftAvatar({
 	return tooltip != undefined ? (
 		<Tooltip disableHoverableContent>
 			<TooltipTrigger>
-				<InternalAvatar uuid={uuid} size={size}></InternalAvatar>
+				<InternalAvatarComponent uuid={uuid} size={size}></InternalAvatarComponent>
 			</TooltipTrigger>
 			<TooltipContent side="left">{tooltip}</TooltipContent>
 		</Tooltip>
 	) : (
-		<InternalAvatar uuid={uuid} size={size}></InternalAvatar>
+		<InternalAvatarComponent uuid={uuid} size={size}></InternalAvatarComponent>
 	);
 }
 
-export default React.memo(minecraftAvatar);
+const InternalAvatarComponent = React.memo(InternalAvatar);
 
 function InternalAvatar({ uuid, size }: { uuid: string; size?: string }) {
 	return (

@@ -57,8 +57,8 @@ export const matches = sqliteTable("matches", {
 
 	winner: int("winner").$type<Team>(),
 	map: text("map"),
-	red_scores: int("red_scores").default(0),
-	blue_scores: int("blue_scores").default(0),
+	red_scores: int("red_scores").default(0).notNull(),
+	blue_scores: int("blue_scores").default(0).notNull(),
 	duration: real("duration").notNull().default(-1),
 	uploaded_at: int("uploaded_at")
 		.notNull()

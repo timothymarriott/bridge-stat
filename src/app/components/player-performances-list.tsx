@@ -20,6 +20,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { CalculateElos, EloInformation } from "@/lib/stats";
 import { useEffect, useState } from "react";
 import { FilterState, SortMode } from "../routes/player/$username";
+import React from "react";
+import { MatchInfo } from "./match-info";
 
 export default function PlayerPerformancesList({
 	player,
@@ -89,7 +91,7 @@ export default function PlayerPerformancesList({
 					performances.length > 0 &&
 					performances.map((perf, i) => {
 						return (
-							<PerformanceDisplay
+							<PerformanceDisplayComponent
 								key={i}
 								elos={elos}
 								matches={matches}
@@ -107,6 +109,76 @@ export default function PlayerPerformancesList({
 		</>
 	);
 }
+
+const PerformanceDisplayComponent = React.memo(PerformanceDisplay);
+
+function teamInfo({
+	team,
+	side,
+	match,
+	players,
+}: {
+	team: Team;
+	side: "left" | "right";
+	match: Match;
+	players: OptionalPlayerInformation[];
+}) {
+	const performances = team == Team.RED ? match.red_players : match.blue_players;
+	const isMobile = useIsMobile();
+	return (
+		<div
+			className={
+				"h-full flex text-center " +
+				(side == "left" ? "flex-row" : "flex-row-reverse") +
+				" rounded-sm space-x-1"
+			}
+		>
+			<div
+				className={
+					"grid grid-cols-4 w-26 rounded-sm p-1 space-x-1 " +
+					(side == "right" ? "items-end [direction:rtl] " : "") +
+					(team == Team.RED ? "bg-red-500/80" : "bg-blue-600/80")
+				}
+			>
+				{performances
+					.sort((a, b) => {
+						const a_p = players.find((p) => p.exists && p.id == a.user);
+						const b_p = players.find((p) => p.exists && p.id == b.user);
+						if (!a_p || !a_p.exists || !a_p.username) return 1;
+						if (!b_p || !b_p.exists || !b_p.username) return -1;
+						return a_p.username.localeCompare(b_p.username);
+					})
+					.map((p, i) => {
+						const player = players.find((_p) => {
+							if (!_p.exists || !_p) return false;
+							return _p.id == p.user;
+						});
+						if (player == undefined || !player.exists) return null;
+						return (
+							<MinecraftAvatar
+								key={i}
+								size="size-5"
+								uuid={player.uuid}
+								tooltip={
+									isMobile ? undefined : (
+										<>
+											<span>{player.username ?? ""}</span> <br />
+											<span>Goals: {p.scores}</span> <br />
+											<span>Kills: {p.kills}</span> <br />
+											<span>Deaths: {p.deaths}</span> <br />
+											<span>Voids: {p.voids}</span>
+										</>
+									)
+								}
+							/>
+						);
+					})}
+			</div>
+		</div>
+	);
+}
+
+export const TeamInfo = React.memo(teamInfo);
 
 function PerformanceDisplay({
 	perf,
@@ -146,62 +218,13 @@ function PerformanceDisplay({
 		winner = Team.BLUE;
 	}
 
-	function TeamInfo({ team, side }: { team: Team; side: "left" | "right" }) {
-		const performances = team == Team.RED ? match.red_players : match.blue_players;
-		return (
-			<div
-				className={
-					"h-full flex text-center " +
-					(side == "left" ? "flex-row" : "flex-row-reverse") +
-					" rounded-sm space-x-1"
-				}
-			>
-				<div
-					className={
-						"grid grid-cols-4 w-26 rounded-sm p-1 space-x-1 " +
-						(side == "right" ? "items-end [direction:rtl] " : "") +
-						(team == Team.RED ? "bg-red-500/80" : "bg-blue-600/80")
-					}
-				>
-					{performances
-						.sort((a, b) => {
-							const a_p = players.find((p) => p.exists && p.id == a.user);
-							const b_p = players.find((p) => p.exists && p.id == b.user);
-							if (!a_p || !a_p.exists || !a_p.username) return 1;
-							if (!b_p || !b_p.exists || !b_p.username) return -1;
-							return a_p.username.localeCompare(b_p.username);
-						})
-						.map((p, i) => {
-							const player = players.find((_p) => {
-								if (!_p.exists || !_p) return false;
-								return _p.id == p.user;
-							});
-							if (player == undefined || !player.exists) return null;
-							return (
-								<MinecraftAvatar
-									key={i}
-									size="size-5"
-									uuid={player.uuid}
-									tooltip={
-										isMobile ? undefined : (
-											<>
-												<span>{player.username ?? ""}</span> <br />
-												<span>Goals: {p.scores}</span> <br />
-												<span>Kills: {p.kills}</span> <br />
-												<span>Deaths: {p.deaths}</span> <br />
-												<span>Voids: {p.voids}</span>
-											</>
-										)
-									}
-								/>
-							);
-						})}
-				</div>
-			</div>
-		);
-	}
-
 	const [hovered, setHovered] = useState<boolean>(false);
+
+	const player = players.find((p) => p.exists && p.id == perf.user);
+
+	if (!player || !player.exists) {
+		return null;
+	}
 
 	return (
 		<Popover key={i}>
@@ -213,9 +236,9 @@ function PerformanceDisplay({
 					}
 				>
 					{perf.team == Team.RED ? (
-						<TeamInfo team={Team.RED} side="left" />
+						<TeamInfo match={match} players={players} team={Team.RED} side="left" />
 					) : (
-						<TeamInfo team={Team.BLUE} side="left" />
+						<TeamInfo match={match} players={players} team={Team.BLUE} side="left" />
 					)}
 
 					<div className={"text-center grid grid-cols-3"}>
@@ -300,29 +323,20 @@ function PerformanceDisplay({
 						)}
 					</div>
 					{perf.team == Team.RED ? (
-						<TeamInfo team={Team.BLUE} side="right" />
+						<TeamInfo match={match} players={players} team={Team.BLUE} side="right" />
 					) : (
-						<TeamInfo team={Team.RED} side="right" />
+						<TeamInfo match={match} players={players} team={Team.RED} side="right" />
 					)}
 				</div>
 			</PopoverTrigger>
-			<PopoverContent>
-				<PopoverHeader>
-					<PopoverTitle>What a cool match.</PopoverTitle>
-					<PopoverDescription>
-						This will contain more info about the match.
-						<img
-							src={
-								"/Maps/" +
-								(perf.team == Team.RED ? "Red" : "Blue") +
-								"/" +
-								match.map +
-								".png"
-							}
-							alt=""
-						/>
-					</PopoverDescription>
-				</PopoverHeader>
+			<PopoverContent onOpenAutoFocus={(e) => e.preventDefault()} className="w-max">
+				<MatchInfo
+					players={players}
+					match={match}
+					perf={perf}
+					eloInfo={elos.matches[match.id]}
+					player={player}
+				></MatchInfo>
 			</PopoverContent>
 		</Popover>
 	);
