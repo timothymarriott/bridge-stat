@@ -264,12 +264,12 @@ export default function PlayerDetails({
 									<stop
 										offset="5%"
 										stopColor="var(--color-red-400)"
-										stopOpacity={0.8}
+										stopOpacity={0.9}
 									/>
 									<stop
 										offset="95%"
 										stopColor="var(--color-red-400)"
-										stopOpacity={0.1}
+										stopOpacity={0.2}
 									/>
 								</linearGradient>
 							</defs>
