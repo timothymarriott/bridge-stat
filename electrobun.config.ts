@@ -5,7 +5,10 @@ export default {
 		name: "bridge-stat",
 		identifier: "com.timothymarriott.bridge-stat",
 		version: "0.0.1",
+
 	},
+
+
 
 	build: {
 		bun: {
@@ -24,7 +27,8 @@ export default {
 			bundleCEF: false,
 		},
 		win: {
-			bundleCEF: false,
+			bundleCEF: true,
+			defaultRenderer: "cef"
 		},
 	},
 } satisfies ElectrobunConfig;
