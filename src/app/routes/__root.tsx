@@ -1,8 +1,14 @@
-import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
+import {
+	createRootRouteWithContext,
+	Outlet,
+	useRouter,
+	useRouterState,
+} from "@tanstack/react-router";
 import { QueryClient } from "@tanstack/react-query";
 import Layout from "../layout";
 import { Button } from "@/components/ui/button";
 import { router } from "../router";
+import { NativeProvider } from "../native/hooks";
 
 export const Route = createRootRouteWithContext<{
 	queryClient: QueryClient;
@@ -49,9 +55,11 @@ export const Route = createRootRouteWithContext<{
 function Root() {
 	return (
 		<>
-			<Layout>
-				<Outlet />
-			</Layout>
+			<NativeProvider>
+				<Layout>
+					<Outlet />
+				</Layout>
+			</NativeProvider>
 		</>
 	);
 }

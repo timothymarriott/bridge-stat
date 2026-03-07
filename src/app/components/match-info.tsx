@@ -28,7 +28,7 @@ export function MatchInfo({
 			: match.blue_scores > match.red_scores;
 
 	return (
-		<div className="flex flex-row">
+		<div className="flex flex-row select-none">
 			<div className="w-64 space-y-1">
 				<div className="flex flex-row justify-between">
 					{didWin ? (

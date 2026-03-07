@@ -4,6 +4,11 @@
 
 @custom-variant dark (&:is(.dark *));
 
+* {
+	-webkit-user-select: none;
+	user-select: none;
+}
+
 :root {
 	--background: oklch(0.98 0 0);
 	--foreground: oklch(0.28 0.04 260.33);

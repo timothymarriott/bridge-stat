@@ -8,7 +8,7 @@ import {
 	SidebarMenuButton,
 } from "@/components/ui/sidebar";
 import { SidebarUser } from "./sidebar-user";
-import { HomeIcon } from "lucide-react";
+import { CloudIcon, HomeIcon, MonitorIcon } from "lucide-react";
 import { router } from "@/app/router";
 import { matchesQuery, playersQuery } from "@/app/queries";
 import MinecraftAvatar from "../mc-avatar";
@@ -17,6 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { CalculateElos, EloInformation, GetELO } from "@/lib/stats";
 import { useEffect, useState } from "react";
+import { useNative } from "@/app/native/hooks";
 
 export function LayoutSidebar() {
 	const player_list = useQueryData(playersQuery);
@@ -29,8 +30,10 @@ export function LayoutSidebar() {
 			setElos(CalculateElos(player_list, Object.values(matches)));
 	}, [matches, player_list]);
 
+	const native = useNative();
+
 	return (
-		<Sidebar collapsible="icon" variant="floating">
+		<Sidebar collapsible="icon" variant="floating" className={native.isNative ? "pb-9" : ""}>
 			<SidebarHeader></SidebarHeader>
 			<SidebarContent>
 				<SidebarGroup>
@@ -90,6 +93,16 @@ export function LayoutSidebar() {
 				>
 					<HomeIcon /> Home
 				</SidebarMenuButton>
+
+				{native.isNative ? (
+					<SidebarMenuButton>
+						<MonitorIcon /> Native
+					</SidebarMenuButton>
+				) : (
+					<SidebarMenuButton>
+						<CloudIcon /> Web
+					</SidebarMenuButton>
+				)}
 
 				<SidebarUser></SidebarUser>
 			</SidebarFooter>

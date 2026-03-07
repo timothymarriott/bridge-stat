@@ -2,11 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { authQuery } from "../queries";
 import LinkRequestList from "../components/link-request-list";
 import UserList from "../components/user-list";
-import { useRef } from "react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { FullMatchInsertData } from "@/worker/types";
-import UploadMatchDialog from "../components/upload-match-dialog";
+import { useNative } from "../native/hooks";
 
 export const Route = createFileRoute("/admin")({
 	beforeLoad: async ({ context }) => {
@@ -27,9 +23,9 @@ export const Route = createFileRoute("/admin")({
 });
 
 export function Admin() {
-	const inputref = useRef<HTMLInputElement>(null);
+	const native = useNative();
 	return (
-		<div className="space-y-2">
+		<div className={"space-y-2 " + (native.isNative ? "pb-9" : "pb-2")}>
 			<UserList />
 			<LinkRequestList />
 		</div>

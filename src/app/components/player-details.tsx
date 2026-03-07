@@ -189,12 +189,12 @@ export default function PlayerDetails({
 								<linearGradient id="fillConfidence" x1="0" y1="0" x2="0" y2="1">
 									<stop
 										offset="5%"
-										stopColor="var(--chart-2)"
+										stopColor="var(--chart-3)"
 										stopOpacity={0.8}
 									/>
 									<stop
 										offset="95%"
-										stopColor="var(--chart-2)"
+										stopColor="var(--chart-3)"
 										stopOpacity={0.1}
 									/>
 								</linearGradient>
@@ -212,7 +212,7 @@ export default function PlayerDetails({
 								type="natural"
 								fill="url(#fillConfidence)"
 								fillOpacity={0.4}
-								stroke="var(--chart-2)"
+								stroke="var(--chart-3)"
 								stackId="b"
 							/>
 						</AreaChart>

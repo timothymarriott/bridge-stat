@@ -38,7 +38,8 @@
         "tailwind-merge": "^3.5.0",
         "tailwindcss": "^4.2.0",
         "ts-trueskill": "^5.1.0",
-        "zod": "^4.3.6"
+        "zod": "^4.3.6",
+        "electrobun": "^1.15.1"
     },
     "devDependencies": {
         "@cloudflare/vite-plugin": "1.15.3",
@@ -69,7 +70,8 @@
         "dev": "vite",
         "lint": "eslint .",
         "preview": "npm run build && vite preview",
-        "migrate": "drizzle-kit generate && wrangler d1 migrations apply bridge --local"
+        "migrate": "drizzle-kit generate && wrangler d1 migrations apply bridge --local",
+        "native": "electrobun dev"
     },
     "type": "module"
 }
