@@ -16,6 +16,9 @@ const mainWindow = new BrowserWindow({
 		x: 200,
 		y: 200,
 	},
+	styleMask: {
+		FullSizeContentView: true,
+	},
 	titleBarStyle: "default",
 	renderer: "cef",
 	rpc: webviewRpc,

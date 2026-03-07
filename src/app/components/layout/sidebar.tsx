@@ -33,7 +33,7 @@ export function LayoutSidebar() {
 	const native = useNative();
 
 	return (
-		<Sidebar collapsible="icon" variant="floating" className={native.isNative ? "pb-9" : ""}>
+		<Sidebar collapsible="icon" variant="floating">
 			<SidebarHeader></SidebarHeader>
 			<SidebarContent>
 				<SidebarGroup>
