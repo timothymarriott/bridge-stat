@@ -6,7 +6,8 @@ export type NativeRPCType = {
 		requests: {
 			onReplayAdded: {
 				params: {
-					data: Uint8Array;
+					data: string;
+					path: string;
 				};
 				response: string;
 			};

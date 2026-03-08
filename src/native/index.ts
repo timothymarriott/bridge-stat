@@ -11,32 +11,39 @@ const mainWindow = new BrowserWindow({
 	title: "Bridge Stats",
 	url: "http://localhost:5173",
 	frame: {
-		width: 10,
-		height: 10,
+		width: 1920,
+		height: 1081,
 		x: 200,
 		y: 200,
 	},
+	styleMask: {
+		FullSizeContentView: true,
+	},
 	titleBarStyle: "default",
-	renderer: "cef",
 	rpc: webviewRpc,
 });
 
-mainWindow.setSize(1920 / 2, 1080 / 2 + 28);
+mainWindow.setSize(1920, 1080);
 
-const SEARCH_DIR = "/home/lem00ns/test";
+const SEARCH_DIR = "C:\\Users\\timot\\Documents\\FunTimes";
 
 const watcher = watch(SEARCH_DIR, { recursive: true }, async (event, filename) => {
 	console.log(`Detected ${event} in ${SEARCH_DIR}/${filename}`);
 
-	const file = Bun.file(`${SEARCH_DIR}/${filename}`);
+	if (event == "change") {
+		setTimeout(async () => {
+			const file = Bun.file(`${SEARCH_DIR}/${filename}`);
 
-	if (await file.exists()) {
-		const stat = await file.stat();
-		if (stat.isFile()) {
-			mainWindow.webview.rpc?.request.onReplayAdded({
-				data: new Uint8Array(await file.arrayBuffer()),
-			});
-		}
+			if (await file.exists()) {
+				const stat = await file.stat();
+				if (stat.isFile()) {
+					mainWindow.webview.rpc?.request.onReplayAdded({
+						data: new Uint8Array(await file.arrayBuffer()).toBase64(),
+						path: `${SEARCH_DIR}/${filename}`,
+					});
+				}
+			}
+		}, 100);
 	}
 });
 

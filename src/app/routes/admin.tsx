@@ -25,7 +25,7 @@ export const Route = createFileRoute("/admin")({
 export function Admin() {
 	const native = useNative();
 	return (
-		<div className={"space-y-2 " + (native.isNative ? "pb-9" : "pb-2")}>
+		<div className={"space-y-2 pb-2"}>
 			<UserList />
 			<LinkRequestList />
 		</div>
