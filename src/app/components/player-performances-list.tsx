@@ -8,14 +8,7 @@ import {
 import { useQueryData } from "../auth-hooks";
 import { matchesQuery, playersQuery } from "../queries";
 import MinecraftAvatar from "./mc-avatar";
-import {
-	Popover,
-	PopoverContent,
-	PopoverDescription,
-	PopoverHeader,
-	PopoverTitle,
-	PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { CalculateElos, EloInformation } from "@/lib/stats";
 import { useEffect, useState } from "react";

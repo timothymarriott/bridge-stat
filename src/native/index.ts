@@ -23,7 +23,7 @@ const mainWindow = new BrowserWindow({
 
 mainWindow.setSize(1920 / 2, 1080 / 2 + 28);
 
-const SEARCH_DIR = "/Users/timothymarriott/test";
+const SEARCH_DIR = "/home/lem00ns/test";
 
 const watcher = watch(SEARCH_DIR, { recursive: true }, async (event, filename) => {
 	console.log(`Detected ${event} in ${SEARCH_DIR}/${filename}`);
