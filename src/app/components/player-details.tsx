@@ -86,21 +86,27 @@ export default function PlayerDetails({
 			totalKill += performance.kills;
 			totalDeath += performance.deaths;
 
-			if (v.match.blue_scores == 5 && v.match.blue_players.find((p) => p.user == player.id)) {
+			if (
+				v.match.blue_scores > v.match.red_scores &&
+				v.match.blue_players.find((p) => p.user == player.id)
+			) {
 				totalWin += 1;
 			}
-			if (v.match.red_scores == 5 && v.match.red_players.find((p) => p.user == player.id)) {
+			if (
+				v.match.red_scores > v.match.blue_scores &&
+				v.match.red_players.find((p) => p.user == player.id)
+			) {
 				totalWin += 1;
 			}
 
 			if (
-				v.match.blue_scores == 5 &&
+				v.match.blue_scores > v.match.red_scores &&
 				v.match.blue_players.find((p) => p.user == player.id) == undefined
 			) {
 				totalLoss += 1;
 			}
 			if (
-				v.match.red_scores == 5 &&
+				v.match.red_scores > v.match.blue_scores &&
 				v.match.red_players.find((p) => p.user == player.id) == undefined
 			) {
 				totalLoss += 1;

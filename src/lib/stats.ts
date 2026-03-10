@@ -55,9 +55,9 @@ export function CalculateElos(
 
 		let ranks: number[];
 
-		if (match.red_scores === 5) {
+		if (match.red_scores > match.blue_scores) {
 			ranks = [0, 1];
-		} else if (match.blue_scores === 5) {
+		} else if (match.blue_scores > match.red_scores) {
 			ranks = [1, 0];
 		} else {
 			ranks = [0, 0];

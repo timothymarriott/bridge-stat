@@ -1,9 +1,9 @@
 import { Context, Hono, Next } from "hono";
 import { logger } from "hono/logger";
 import api from "./api";
-import { better_auth } from "./api/auth";
 import { UpdateDB } from "./database";
 import { TimeRequest } from "./requests";
+import { better_auth } from "./better_auth";
 
 export async function RequireAuthInformation(
 	c: Context<{

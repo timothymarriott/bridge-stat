@@ -203,13 +203,7 @@ function PerformanceDisplay({
 		}
 	}
 
-	let winner: Team = Team.RED;
-
-	if (red_scores == 5) {
-		winner = Team.RED;
-	} else if (blue_scores == 5) {
-		winner = Team.BLUE;
-	}
+	let winner: Team = red_scores > blue_scores ? Team.RED : Team.BLUE;
 
 	const [hovered, setHovered] = useState<boolean>(false);
 
