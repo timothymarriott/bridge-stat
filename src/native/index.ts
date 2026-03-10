@@ -25,7 +25,7 @@ const mainWindow = new BrowserWindow({
 
 mainWindow.setSize(1920, 1080);
 
-const SEARCH_DIR = "C:\\Users\\timot\\Documents\\FunTimes";
+const SEARCH_DIR = "E:\\Apps\\PrismLauncher\\instances\\MenOfTheMine\\.minecraft\\flashback\\replays";
 
 const watcher = watch(SEARCH_DIR, { recursive: true }, async (event, filename) => {
 	console.log(`Detected ${event} in ${SEARCH_DIR}/${filename}`);

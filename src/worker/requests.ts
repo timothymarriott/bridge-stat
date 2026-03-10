@@ -93,6 +93,8 @@ export async function GetMatches(): Promise<Record<string, Match>> {
 		"Reaching out to cloudflare to get matches",
 	);
 
+	raw.sort((a, b) => a.match.uploaded_at - b.match.uploaded_at)
+
 	const result: Record<string, Match> = {};
 	for (const match of raw) {
 		if (result[match.match.id] == undefined) {
@@ -110,6 +112,7 @@ export async function GetMatches(): Promise<Record<string, Match>> {
 			result[match.match.id].blue_players.push(match.performance);
 		}
 	}
+
 	return result;
 }
 

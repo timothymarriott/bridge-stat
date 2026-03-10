@@ -41,16 +41,25 @@ export default function UploadMatchDialog({ children }: { children: ReactNode })
 										files.push(file);
 									}
 
-									await Promise.all(
-										files.map(async (file) => {
-											console.log(file);
-											const flashback = new Flashback();
+
+									files.sort((a, b) => a.lastModified - b.lastModified);
+
+									let i = 0;
+
+									await Promise.allSettled(files.map(async file => {
+
+										try {
+											const flashback = new Flashback(file.lastModified);
 											const res = await flashback.findGames(
 												await file.bytes(),
 											);
 											matches.push(...res);
 
+											let j = 0;
+
 											for (const match of res) {
+												console.log(`${i}/${files.length} (${j}/${res.length}) ${file.name} ${file.lastModified}`)
+
 												match.red_players.forEach((v) => {
 													v.username = v.username
 														.replace("JoeBartLover", "TheMoon021")
@@ -67,9 +76,21 @@ export default function UploadMatchDialog({ children }: { children: ReactNode })
 													method: "POST",
 													body: JSON.stringify(match),
 												});
+
+
+												j++;
 											}
-										}),
-									);
+
+											console.log(`${i}/${files.length} (${j}/${res.length}) ${file.name} ${file.lastModified}`)
+
+
+
+										} catch {
+
+										}
+
+										i++;
+									}))
 
 									console.log(matches);
 								}

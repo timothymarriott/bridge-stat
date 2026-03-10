@@ -36,10 +36,44 @@ export const admin = new Hono<{
 
 		const players = await Promise.all(users.map((usr) => GetPlayerInformationByUser(usr)));
 
+		let hash_number = data.duration;
+
+		[...data.red_players, ...data.blue_players].forEach(p => {
+			hash_number ^= p.scores;
+			hash_number ^= p.kills;
+			hash_number ^= p.deaths;
+		})
+
+		const hash_data = {
+			duration: data.duration,
+			map: data.map,
+			hash: (data.duration ?? 0) ^ hash_number
+		}
+
+		const encoder = new TextEncoder();
+		const hash = await crypto.subtle.digest("SHA-256", encoder.encode(JSON.stringify(hash_data)));
+		const hashArray = Array.from(new Uint8Array(hash));
+  		const hashhex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
 		const match_data: MatchInsertData = {
 			...data,
+			uploaded_at: data.date,
+			hash: hashhex
 		};
+
+		const existingMatch = await db
+			.select()
+			.from(matches)
+			.where(eq(matches.hash, match_data.hash))
+			.limit(1)
+			.get();
+
+		if (existingMatch) {
+			return c.text("Cannot upload duplicate match.", 409);
+		}
+
 		const [match] = await db.insert(matches).values(match_data).returning();
+
 
 		const perfs: PlayerPerformanceInsertData[] = [];
 

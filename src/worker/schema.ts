@@ -54,7 +54,7 @@ export const link_requests = sqliteTable("link_requests", {
 
 export const matches = sqliteTable("matches", {
 	id: int("id").primaryKey(),
-
+	hash: text("hash").notNull().unique(),
 	winner: int("winner").$type<Team>(),
 	map: text("map"),
 	red_scores: int("red_scores").default(0).notNull(),

@@ -1,6 +1,7 @@
 import { NativeRPCType } from "@/lib/rpc";
 import { Electroview } from "electrobun/view";
 import { createContext, useContext, ReactNode } from "react";
+import Flashback from "../flashback";
 
 type NativeContextType =
 	| {
@@ -18,7 +19,7 @@ export function NativeProvider({ children }: { children: ReactNode }) {
 		const rpc = Electroview.defineRPC<NativeRPCType>({
 			handlers: {
 				requests: {
-					onReplayAdded: ({data, path}) => {
+					onReplayAdded: async ({data, path}) => {
 
 						var binaryString = atob(data);
 						var bytes = new Uint8Array(binaryString.length);
@@ -27,7 +28,32 @@ export function NativeProvider({ children }: { children: ReactNode }) {
 						}
 
 						if (bytes.length >= 2 && bytes[0] == 80 && bytes[1] == 75){
-							console.log("Uploaded replay", bytes)
+							console.log("Uploaded replay")
+							const flashback = new Flashback(new Date().getTime());
+							const res = await flashback.findGames(
+								bytes,
+							);
+
+							for (const match of res) {
+								match.red_players.forEach((v) => {
+									v.username = v.username
+										.replace("JoeBartLover", "TheMoon021")
+										.replace("Jordano120", "Tetron_");
+								});
+
+								match.blue_players.forEach((v) => {
+									v.username = v.username
+										.replace("JoeBartLover", "TheMoon021")
+										.replace("Jordano120", "Tetron_");
+								});
+								await fetch("/api/admin/upload", {
+									credentials: "include",
+									method: "POST",
+									body: JSON.stringify(match),
+								});
+							}
+
+							console.log(res);
 						}
 
 						console.log(path, bytes)

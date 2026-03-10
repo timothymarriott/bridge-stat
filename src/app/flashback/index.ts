@@ -3,6 +3,7 @@ import { ByteReader } from "./byteReader";
 
 import rawpackets from "./packets.json";
 import { FullMatchInsertData, MatchPlayerInsertData, Team } from "@/worker/types";
+import { MAP_NAMES } from "@/lib/data";
 
 export type PacketGroup = {
 	clientbound?: Record<
@@ -215,6 +216,8 @@ export const PacketParsers: Record<string, (flashback: Flashback, reader: ByteRe
 					flashback.current_match.map == undefined
 				) {
 					flashback.current_match.map = content.extra[3].text;
+
+
 				}
 			}
 
@@ -277,10 +280,16 @@ export default class Flashback {
 	reading_winners: boolean = false;
 	reading_losers: boolean = false;
 
+	reading_game: boolean = false;
+
 	matches: FullMatchInsertData[] = [];
 	current_match: MatchState | null = null;
 
-	constructor() {}
+	date: number = 0;
+
+	constructor(date: number) {
+		this.date = date;
+	}
 
 	start_match(match: MatchState) {
 		this.current_match = match;
@@ -317,6 +326,7 @@ export default class Flashback {
 				map: this.current_match.map ?? "Null",
 				red_players: red_players,
 				blue_players: blue_players,
+				date: this.date
 			};
 			this.matches.push(data);
 		}
@@ -339,7 +349,8 @@ export default class Flashback {
 		} catch {}
 
 		if (this.metadata == null) {
-			throw new Error("Couldnt read flashback metadata.");
+			return [];
+			//throw new Error("Couldnt read flashback metadata.");
 		}
 
 		if (

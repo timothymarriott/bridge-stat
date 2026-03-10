@@ -21,6 +21,7 @@ export type MatchPlayerInsertData = {
 	voids: number;
 };
 export type FullMatchInsertData = {
+	date: number;
 	duration: number;
 	map: string;
 	red_players: MatchPlayerInsertData[];
