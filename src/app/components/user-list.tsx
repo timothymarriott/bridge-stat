@@ -14,7 +14,7 @@ import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import MinecraftAvatar from "./mc-avatar";
 import { adminLinkRequestsQuery, adminUsersQuery, authQuery } from "../queries";
 import { Button } from "@/components/ui/button";
-import { Link2OffIcon } from "lucide-react";
+import { Link2OffIcon, TrashIcon } from "lucide-react";
 import { queryClient } from "../router";
 import { proxy } from "@/lib/utils";
 
@@ -85,7 +85,24 @@ export default function UserList() {
 							>
 								<Link2OffIcon /> Unlink
 							</Button>
-						) : null}
+						) : (
+							<Button
+								onClick={async () => {
+									await fetch("/api/admin/link/unlink/" + me.id, {
+										credentials: "include",
+										method: "POST",
+									});
+									await users.refetch();
+									await Promise.all([
+										queryClient.refetchQueries(adminLinkRequestsQuery),
+										queryClient.refetchQueries(authQuery),
+									]);
+								}}
+								variant={"destructive"}
+							>
+								<TrashIcon /> Delete
+							</Button>
+						)}
 					</div>
 				);
 			},

@@ -1,34 +1,9 @@
 import { Hono, TypedResponse } from "hono";
-import { betterAuth } from "better-auth";
-import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { CreateUserProfile, GetUserProfileById, UpdateProfileUsername } from "../requests";
-import { env } from "cloudflare:workers";
-import * as schema from "../schema";
 import { OptionalUserInformation, User } from "../types";
 import { FetchMojangProfile } from "../mojang";
-import { db } from "../database";
 import { RequireAuthInformation } from "..";
-
-export const better_auth = betterAuth({
-	database: drizzleAdapter(db, {
-		provider: "sqlite",
-		schema: {
-			...schema,
-		},
-	}),
-	session: {},
-	plugins: [],
-	socialProviders: {
-		discord: {
-			clientId: env.DISCORD_CLIENT_ID,
-			clientSecret: env.DISCORD_CLIENT_SECRET,
-		},
-		google: {
-			clientId: env.GOOGLE_CLIENT_ID,
-			clientSecret: env.GOOGLE_CLIENT_SECRET,
-		},
-	},
-});
+import { better_auth } from "../better_auth";
 
 export const auth = new Hono<{
 	Variables: {
@@ -37,7 +12,6 @@ export const auth = new Hono<{
 	};
 }>()
 	.use("*", RequireAuthInformation)
-
 	.get<"/", {}, TypedResponse<OptionalUserInformation>>("/", async (c) => {
 		const user = c.get("user");
 

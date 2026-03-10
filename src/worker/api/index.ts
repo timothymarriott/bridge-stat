@@ -2,7 +2,7 @@ import { Hono, TypedResponse } from "hono";
 import admin from "./admin";
 import { cors } from "hono/cors";
 import { env } from "cloudflare:workers";
-import { better_auth, auth } from "./auth";
+import { auth } from "./auth";
 import { FetchMojangProfile, FetchMojangProfileFromName } from "../mojang";
 import player from "./player";
 import {
@@ -17,6 +17,7 @@ import { db } from "../database";
 import { matches, user_performances } from "../schema";
 import { MAP_NAMES } from "../../lib/data";
 import { RequireAuthInformation } from "..";
+import { better_auth } from "../better_auth";
 
 export const api = new Hono<{
 	Variables: {
@@ -24,7 +25,7 @@ export const api = new Hono<{
 		session: typeof better_auth.$Infer.Session.session | null;
 	};
 }>()
-	.get("/", (c) => c.json({ name: "Testing" }))
+	.get("/", (c) => c.json({}))
 	.route("/admin", admin)
 	.use("/link/request/*", RequireAuthInformation)
 	.post("/link/request/:uuid", async (c) => {

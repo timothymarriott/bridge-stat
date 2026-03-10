@@ -1,6 +1,13 @@
 "use client";
 
-import { LayoutDashboardIcon, LogOut, UploadIcon } from "lucide-react";
+import {
+	CloudIcon,
+	GitCommitIcon,
+	LayoutDashboardIcon,
+	LogOut,
+	MonitorIcon,
+	UploadIcon,
+} from "lucide-react";
 import { SiDiscord, SiGoogle } from "@icons-pack/react-simple-icons";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -27,6 +34,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import UploadMatchDialog from "../upload-match-dialog";
 import { DialogTrigger } from "@/components/ui/dialog";
+import { useNative } from "@/app/native/hooks";
 
 export function SidebarUser() {
 	const auth = useAuth();
@@ -36,6 +44,8 @@ export function SidebarUser() {
 	const better_auth = useBetterAuth();
 
 	const sidebar = useSidebar();
+
+	const native = useNative();
 
 	return sidebar.open ? (
 		<SidebarMenu>
@@ -102,6 +112,22 @@ export function SidebarUser() {
 										</div>
 									</div>
 								</DropdownMenuLabel>
+								<DropdownMenuSeparator />
+
+								<DropdownMenuLabel className="min-h-7 gap-2 rounded-md px-2 py-1 text-xs/relaxed data-inset:pl-7.5 [&_svg:not([class*='size-'])]:size-3.5 group/dropdown-menu-item relative flex cursor-default items-center outline-hidden select-none data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0">
+									{native.isNative ? (
+										<>
+											<MonitorIcon />
+											<span>Native</span>
+										</>
+									) : (
+										<>
+											<CloudIcon />
+											<span>Web</span>
+										</>
+									)}
+								</DropdownMenuLabel>
+
 								<DropdownMenuSeparator />
 
 								{(auth.is_admin ?? 0 > 0) ? (

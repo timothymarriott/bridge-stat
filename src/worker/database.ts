@@ -1,7 +1,7 @@
 import { env } from "cloudflare:workers";
 import { drizzle } from "drizzle-orm/d1";
 import { Context } from "hono";
-import { better_auth } from "./api/auth";
+import { better_auth } from "./better_auth";
 
 export let db = drizzle(env.bridge!);
 

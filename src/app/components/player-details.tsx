@@ -76,7 +76,7 @@ export default function PlayerDetails({
 		if (v.totals[player.id] != undefined && performance != undefined) {
 			totalMatches++;
 			eloChartData.push({
-				date: eloChartData.length + 1,
+				date: v.match.id,
 				elo: GetELO(v.totals[player.id]),
 				confidence: v.totals[player.id].pi * 1500,
 				rating: v.totals[player.id],

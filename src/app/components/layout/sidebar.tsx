@@ -18,10 +18,13 @@ import { Spinner } from "@/components/ui/spinner";
 import { CalculateElos, EloInformation, GetELO } from "@/lib/stats";
 import { useEffect, useState } from "react";
 import { useNative } from "@/app/native/hooks";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export function LayoutSidebar() {
 	const player_list = useQueryData(playersQuery);
 	const matches = useQueryData(matchesQuery);
+
+	const isMobile = useIsMobile();
 
 	const [elos, setElos] = useState<EloInformation | null>(null);
 
@@ -29,8 +32,6 @@ export function LayoutSidebar() {
 		if (player_list != null && matches != null)
 			setElos(CalculateElos(player_list, Object.values(matches)));
 	}, [matches, player_list]);
-
-	const native = useNative();
 
 	return (
 		<Sidebar collapsible="icon" variant="floating">
@@ -93,16 +94,6 @@ export function LayoutSidebar() {
 				>
 					<HomeIcon /> Home
 				</SidebarMenuButton>
-
-				{native.isNative ? (
-					<SidebarMenuButton>
-						<MonitorIcon /> Native
-					</SidebarMenuButton>
-				) : (
-					<SidebarMenuButton>
-						<CloudIcon /> Web
-					</SidebarMenuButton>
-				)}
 
 				<SidebarUser></SidebarUser>
 			</SidebarFooter>

@@ -1,5 +1,4 @@
 import { Hono, TypedResponse } from "hono";
-import { better_auth } from "../auth";
 import { RequireAdmin } from "../../utils";
 import { GetPlayerInformationByUser, GetUsers } from "../../requests";
 import link from "./link";
@@ -13,6 +12,7 @@ import { RequireAuthInformation } from "../..";
 import { db } from "../../database";
 import { matches, user_performances } from "../../schema";
 import { eq } from "drizzle-orm";
+import { better_auth } from "../../better_auth";
 
 export const admin = new Hono<{
 	Variables: {
@@ -23,6 +23,11 @@ export const admin = new Hono<{
 	.use("*", RequireAuthInformation)
 	.use("*", RequireAdmin)
 	.route("/link", link)
+	.post("/delete/:id", async (c) => {
+		const { id } = c.req.param();
+
+		return c.text("Ok", 200);
+	})
 	.post<"/upload">("/upload", async (c) => {
 		const text = await c.req.text();
 		const data: FullMatchInsertData = await JSON.parse(text);
