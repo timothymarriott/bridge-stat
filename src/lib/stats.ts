@@ -8,6 +8,7 @@ export type MatchEloInformation = {
 };
 
 export type EloInformation = {
+	counts: Record<string, number>;
 	finalScores: Record<string, Rating>;
 	matches: Record<string, MatchEloInformation>;
 };
@@ -21,6 +22,8 @@ export function CalculateElos(
 	matches: Match[],
 ): EloInformation {
 	const ratings: Record<string, Rating> = {};
+
+	const counts: Record<string, number> = {};
 
 	for (const p of players) {
 		if (p.exists) ratings[p.id] = new Rating();
@@ -37,6 +40,10 @@ export function CalculateElos(
 			if (v == undefined) {
 				return null;
 			}
+			if (counts[p.user] == undefined) {
+				counts[p.user] = 0;
+			}
+			counts[p.user] = counts[p.user] + 1;
 			return v;
 		});
 		redTeam = redTeam.filter((v) => v != null);
@@ -48,6 +55,10 @@ export function CalculateElos(
 			if (v == undefined) {
 				return null;
 			}
+			if (counts[p.user] == undefined) {
+				counts[p.user] = 0;
+			}
+			counts[p.user] = counts[p.user] + 1;
 			return v;
 		});
 
@@ -61,6 +72,10 @@ export function CalculateElos(
 			ranks = [1, 0];
 		} else {
 			ranks = [0, 0];
+		}
+
+		if (redTeam.length == 0 || blueTeam.length == 0) {
+			continue;
 		}
 
 		const [newRed, newBlue] = rate([redTeam, blueTeam], ranks);
@@ -89,6 +104,7 @@ export function CalculateElos(
 	}
 
 	return {
+		counts: counts,
 		finalScores: ratings,
 		matches: deltas,
 	};

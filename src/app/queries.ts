@@ -48,41 +48,77 @@ export const adminUsersQuery = {
 	},
 };
 
-export const playersQuery = {
+export async function FetchMatches() {
+	const res = await api_client.api.matches.$get();
+	if (!res.ok) return {};
+	const data = await res.json();
+
+	Object.keys(data).forEach((k) => {
+		let red_scores = 0;
+		data[k].red_players.forEach((p) => (red_scores += p.scores));
+		let blue_scores = 0;
+		data[k].blue_players.forEach((p) => (blue_scores += p.scores));
+
+		const updated: Match = {
+			...data[k],
+			red_scores: red_scores,
+			blue_scores: blue_scores,
+		};
+		data[k] = updated;
+	});
+
+	return data;
+}
+
+export const playersQuery = createQuery<{
+	players: OptionalPlayerInformation[];
+	matches: Record<string, Match> | null;
+}>({
 	queryKey: ["players"],
 	staleTime: 60 * 1000,
 	queryFn: async () => {
-		const res = await api_client.api.player.list.$get();
-		if (!res.ok) return [];
-		const data: OptionalPlayerInformation[] = await res.json();
+		const matchesres = await api_client.api.matches.$get();
+		if (!matchesres.ok)
+			return {
+				players: [],
+				matches: null,
+			};
+		const matches = await matchesres.json();
 
-		return data;
-	},
-};
-
-export const matchesQuery = createQuery({
-	queryKey: ["matches"],
-	staleTime: 60 * 1000,
-	queryFn: async () => {
-		const res = await api_client.api.matches.$get();
-		if (!res.ok) return {};
-		const data = await res.json();
-
-		Object.keys(data).forEach((k) => {
+		Object.keys(matches).forEach((k) => {
 			let red_scores = 0;
-			data[k].red_players.forEach((p) => (red_scores += p.scores));
+			matches[k].red_players.forEach((p) => (red_scores += p.scores));
 			let blue_scores = 0;
-			data[k].blue_players.forEach((p) => (blue_scores += p.scores));
+			matches[k].blue_players.forEach((p) => (blue_scores += p.scores));
 
 			const updated: Match = {
-				...data[k],
+				...matches[k],
 				red_scores: red_scores,
 				blue_scores: blue_scores,
 			};
-			data[k] = updated;
+			matches[k] = updated;
 		});
+		const res = await api_client.api.player.list.$get();
+		if (!res.ok)
+			return {
+				players: [],
+				matches: null,
+			};
+		const data: OptionalPlayerInformation[] = await res.json();
 
-		return data;
+		for (const player of data) {
+			if (player.exists)
+				for (const match of Object.values(matches)) {
+					const perf = [...match.blue_players, ...match.red_players].find(
+						(p) => p.user == player.id,
+					);
+					if (perf != undefined) player.performances.push(perf);
+				}
+		}
+
+		console.log(data);
+
+		return { players: data, matches: matches };
 	},
 });
 

@@ -64,6 +64,24 @@ type NbtUnwrapped =
 
 type NbtTag = NbtPrimitive | NbtCompound | NbtList;
 
+function splitBigIntEntries(value: bigint, bitsPerEntry: number, entryCount: number): number[] {
+	if (bitsPerEntry <= 0) {
+		throw new Error("bitsPerEntry must be > 0");
+	}
+
+	const mask = (1n << BigInt(bitsPerEntry)) - 1n;
+	const result = new Array<number>(entryCount);
+
+	let v = value;
+
+	for (let i = 0; i < entryCount; i++) {
+		result[i] = Number(v & mask);
+		v >>= BigInt(bitsPerEntry);
+	}
+
+	return result;
+}
+
 function unwrapNbt(tag: NbtTag): NbtUnwrapped {
 	switch (tag.type) {
 		case "end":
@@ -137,10 +155,23 @@ export class ByteReader {
 		}
 	}
 
+	has(n: number) {
+		if (this.pos + n > this.bytes.length) {
+			return false;
+		}
+		return true;
+	}
+
 	take(n: number): Uint8Array {
 		this.ensure(n);
 		const out = this.bytes.subarray(this.pos, this.pos + n);
 		this.pos += n;
+		return out;
+	}
+
+	peek(n: number): Uint8Array {
+		this.ensure(n);
+		const out = this.bytes.subarray(this.pos, this.pos + n);
 		return out;
 	}
 
@@ -153,7 +184,7 @@ export class ByteReader {
 		this.ensure(1);
 		const out = this.bytes[this.pos];
 		this.pos += 1;
-		return Number(out);
+		return out;
 	}
 
 	remaining_buffer(): Uint8Array {
@@ -431,5 +462,97 @@ export class ByteReader {
 		} else {
 			throw new Error("Unsupported nbt type " + type);
 		}
+	}
+
+	read_block_data() {
+		console.log("Starting to read blocks.", this.pos.toString(16), this.peek(8));
+
+		const entry_count = 4096;
+
+		const bpe = Math.min(this.read_u8(), 15);
+
+		console.log(bpe, "bpe");
+
+		if (bpe == 0) {
+			const val = this.read_varint();
+			console.log("Single value block data:", val);
+			return Array(entry_count).fill(val);
+		}
+		const res: number[] = Array(entry_count).fill(-1);
+
+		const entries_per_long = Math.floor(64 / bpe);
+		console.log(entries_per_long, "epl");
+		const number_of_longs = Math.ceil(entry_count / entries_per_long);
+
+		console.log(number_of_longs, "longs");
+
+		if (!this.has(number_of_longs)) {
+			console.error("Not enough longs");
+		}
+
+		const pallete: number[] = [];
+		if (bpe <= 8) {
+			console.log("Indirect");
+			const length = this.read_varint();
+			for (let i = 0; i < length; i++) {
+				pallete.push(this.read_varint());
+			}
+			console.log(pallete);
+		}
+
+		for (let i = 0; i < number_of_longs; i++) {
+			const entries = splitBigIntEntries(this.read_long(), bpe, entries_per_long);
+			for (let j = 0; j < entries.length; j++) {
+				const index = i * entries_per_long + j;
+				if (index >= entry_count) break;
+				res[index] = pallete.length > 0 ? pallete[entries[j]] : entries[j];
+			}
+		}
+
+		console.log(res);
+
+		console.log("Read blocks");
+	}
+
+	read_biome_data() {
+		console.log("Starting to read biomes");
+		const entry_count = 64;
+
+		const bpe = Math.min(this.read_u8(), 15);
+
+		if (bpe == 0) {
+			const val = this.read_varint();
+			console.log("Single value biome data:", val);
+			return Array(entry_count).fill(val);
+		}
+
+		const res: number[] = [];
+
+		const entries_per_long = Math.floor(64 / bpe);
+		const number_of_longs = Math.ceil(entry_count / entries_per_long);
+
+		if (!this.has(number_of_longs)) {
+			console.error("Not enough longs");
+		}
+
+		const pallete: number[] = [];
+		if (bpe <= 3) {
+			console.log("Indirect");
+			const length = this.read_varint();
+			for (let i = 0; i < length; i++) {
+				pallete.push(this.read_varint());
+			}
+			console.log(pallete);
+		}
+
+		for (let i = 0; i < number_of_longs; i++) {
+			const entries = splitBigIntEntries(this.read_long(), bpe, entries_per_long);
+			for (let j = 0; j < entries.length; j++) {
+				res.push(pallete.length > 0 ? pallete[entries[j]] : entries[j]);
+			}
+		}
+
+		console.log(res);
+		console.log("Read biomes");
 	}
 }

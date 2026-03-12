@@ -6,7 +6,7 @@ import {
 	Team,
 } from "@/worker/types";
 import { useQueryData } from "../auth-hooks";
-import { matchesQuery, playersQuery } from "../queries";
+import { playersQuery } from "../queries";
 import MinecraftAvatar from "./mc-avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -25,8 +25,10 @@ export default function PlayerPerformancesList({
 	sortMode: SortMode;
 	filterState: FilterState;
 }) {
-	const matches = useQueryData(matchesQuery);
-	const players = useQueryData(playersQuery, []);
+	const data = useQueryData(playersQuery, { players: [], matches: null });
+
+	const matches = data.matches;
+	const players = data.players;
 
 	const [performances, setPerformances] = useState<PlayerPerformance[]>([]);
 
@@ -74,7 +76,7 @@ export default function PlayerPerformancesList({
 					}),
 			);
 		}
-	}, [matches, players, filterState, sortMode]);
+	}, [matches, players, filterState, sortMode, player]);
 
 	return (
 		<>
@@ -110,11 +112,13 @@ function teamInfo({
 	side,
 	match,
 	players,
+	priority,
 }: {
 	team: Team;
 	side: "left" | "right";
 	match: Match;
 	players: OptionalPlayerInformation[];
+	priority?: string;
 }) {
 	const performances = team == Team.RED ? match.red_players : match.blue_players;
 	const isMobile = useIsMobile();
@@ -139,6 +143,15 @@ function teamInfo({
 						const b_p = players.find((p) => p.exists && p.id == b.user);
 						if (!a_p || !a_p.exists || !a_p.username) return 1;
 						if (!b_p || !b_p.exists || !b_p.username) return -1;
+
+						if (a_p.id == priority && b_p.id != priority) {
+							return -Infinity;
+						}
+
+						if (b_p.id == priority && a_p.id != priority) {
+							return Infinity;
+						}
+
 						return a_p.username.localeCompare(b_p.username);
 					})
 					.map((p, i) => {
@@ -188,8 +201,6 @@ function PerformanceDisplay({
 }) {
 	if (perf.match == null) return null;
 
-	const isMobile = useIsMobile();
-
 	const match = matches[perf.match];
 
 	let red_scores = 0;
@@ -223,9 +234,21 @@ function PerformanceDisplay({
 					}
 				>
 					{perf.team == Team.RED ? (
-						<TeamInfo match={match} players={players} team={Team.RED} side="left" />
+						<TeamInfo
+							match={match}
+							players={players}
+							team={Team.RED}
+							side="left"
+							priority={player.id}
+						/>
 					) : (
-						<TeamInfo match={match} players={players} team={Team.BLUE} side="left" />
+						<TeamInfo
+							match={match}
+							players={players}
+							team={Team.BLUE}
+							side="left"
+							priority={player.id}
+						/>
 					)}
 
 					<div className={"text-center grid grid-cols-3"}>
@@ -310,9 +333,21 @@ function PerformanceDisplay({
 						)}
 					</div>
 					{perf.team == Team.RED ? (
-						<TeamInfo match={match} players={players} team={Team.BLUE} side="right" />
+						<TeamInfo
+							match={match}
+							players={players}
+							team={Team.BLUE}
+							side="right"
+							priority={player.id}
+						/>
 					) : (
-						<TeamInfo match={match} players={players} team={Team.RED} side="right" />
+						<TeamInfo
+							match={match}
+							players={players}
+							team={Team.RED}
+							side="right"
+							priority={player.id}
+						/>
 					)}
 				</div>
 			</PopoverTrigger>

@@ -1,11 +1,12 @@
 import { useQuery, UseQueryOptions } from "@tanstack/react-query";
 import { api_client, authQuery, betterAuthQuery } from "./queries";
 import {
+	Match,
 	OptionalPlayerInformation,
 	OptionalUserInformation,
 	PlayerInformation,
 } from "@/worker/types";
-import { router } from "./router";
+import { queryClient, router } from "./router";
 
 export function useAuth(): OptionalUserInformation {
 	const profile = useQueryData(authQuery, {
@@ -51,6 +52,10 @@ export function usePlayerInfo(username: string) {
 			};
 		},
 	});
+}
+
+export function dirtyQueryData<TData>(options: UseQueryOptions<TData>) {
+	queryClient.refetchQueries(options);
 }
 
 export function useQueryData<TData>(options: UseQueryOptions<TData>): TData | null;

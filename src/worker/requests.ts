@@ -93,7 +93,7 @@ export async function GetMatches(): Promise<Record<string, Match>> {
 		"Reaching out to cloudflare to get matches",
 	);
 
-	raw.sort((a, b) => a.match.uploaded_at - b.match.uploaded_at)
+	raw.sort((a, b) => a.match.uploaded_at - b.match.uploaded_at);
 
 	const result: Record<string, Match> = {};
 	for (const match of raw) {
@@ -257,18 +257,12 @@ export async function GetPlayerInformationByUser(
 }
 
 export async function GetPlayerInformationById(id: string): Promise<OptionalPlayerInformation> {
-	const [user, performances] = await Promise.all([
-		GetUserInformationById(id),
-		TimeRequest(
-			db.select().from(user_performances).where(eq(user_performances.user, id)),
-			"Reaching out to cloudflare to fetch user performances",
-		),
-	]);
+	const user = await GetUserInformationById(id);
 
 	if (user.exists && user.uuid) {
 		return {
 			...user,
-			performances: performances,
+			performances: [],
 			uuid: user.uuid,
 			exists: true,
 		};
@@ -290,15 +284,10 @@ export async function GetPlayerInformationByUsername(
 		};
 	}
 
-	const performances = await TimeRequest(
-		db.select().from(user_performances).where(eq(user_performances.user, user.id)),
-		"Reaching out to cloudflare to fetch user performances",
-	);
-
 	if (user.exists && user.uuid) {
 		return {
 			...user,
-			performances: performances,
+			performances: [],
 			uuid: user.uuid,
 			exists: true,
 		};

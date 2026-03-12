@@ -113,8 +113,11 @@ export type TextComponent = {
 	  }
 );
 
-export const PacketParsers: Record<string, (flashback: Flashback, reader: ByteReader) => void> = {
-	"minecraft:system_chat": (flashback, reader) => {
+export const PacketParsers: Record<
+	string,
+	(flashback: Flashback, reader: ByteReader) => Promise<void>
+> = {
+	"minecraft:system_chat": async (flashback, reader) => {
 		const content = reader.read_nbt<TextComponent>();
 
 		if (content.extra) {
@@ -216,8 +219,6 @@ export const PacketParsers: Record<string, (flashback: Flashback, reader: ByteRe
 					flashback.current_match.map == undefined
 				) {
 					flashback.current_match.map = content.extra[3].text;
-
-
 				}
 			}
 
@@ -234,7 +235,7 @@ export const PacketParsers: Record<string, (flashback: Flashback, reader: ByteRe
 			}
 		}
 	},
-	"minecraft:set_subtitle_text": (flashback, reader) => {
+	"minecraft:set_subtitle_text": async (flashback, reader) => {
 		const content = reader.read_nbt<TextComponent>();
 		if (
 			content.extra &&
@@ -246,11 +247,16 @@ export const PacketParsers: Record<string, (flashback: Flashback, reader: ByteRe
 	},
 };
 
-export const ActionParsers: Record<string, (flasback: Flashback, reader: ByteReader) => void> = {
-	"flashback:action/next_tick": (flashback) => {
+const CHUNK_CACHE_SIZE = 10000;
+
+export const ActionParsers: Record<
+	string,
+	(flasback: Flashback, reader: ByteReader) => Promise<void>
+> = {
+	"flashback:action/next_tick": async (flashback) => {
 		flashback.tick += 1;
 	},
-	"flashback:action/game_packet": (flashback, reader) => {
+	"flashback:action/game_packet": async (flashback, reader) => {
 		const packet_id = reader.read_varint();
 		const packet_name = play_packets[packet_id];
 		if (packet_name == undefined) return;
@@ -259,8 +265,13 @@ export const ActionParsers: Record<string, (flasback: Flashback, reader: ByteRea
 
 		const parser = PacketParsers[packet_name];
 		if (parser != undefined) {
-			parser.call(flashback, flashback, new ByteReader(packet_data));
+			await parser.call(flashback, flashback, new ByteReader(packet_data));
 		}
+	},
+	"flashback:action/level_chunk_cached": async (flashback, reader) => {
+		const num = reader.read_varint();
+		console.log(num);
+		await flashback.get_chunk(num);
 	},
 };
 
@@ -270,6 +281,15 @@ export type MatchState = {
 	players: Record<string, MatchPlayerInsertData>;
 	map: string | undefined;
 	winner: "Red" | "Blue";
+};
+
+export type Chunk = {
+	x: number;
+	y: number;
+};
+
+export type ChunkCache = {
+	packets: Chunk[];
 };
 
 export default class Flashback {
@@ -286,6 +306,10 @@ export default class Flashback {
 	current_match: MatchState | null = null;
 
 	date: number = 0;
+
+	chunk_cache: Record<number, ChunkCache> = {};
+
+	zip: JSZip | null = null;
 
 	constructor(date: number) {
 		this.date = date;
@@ -326,15 +350,97 @@ export default class Flashback {
 				map: this.current_match.map ?? "Null",
 				red_players: red_players,
 				blue_players: blue_players,
-				date: this.date
+				date: this.date,
 			};
 			this.matches.push(data);
 		}
 		this.current_match = null;
 	}
 
+	async get_chunk(index: number) {
+		const cache_id = Math.floor(index / CHUNK_CACHE_SIZE);
+		const cache = await this.get_cache(cache_id);
+
+		const index_in_cache = index - cache_id * CHUNK_CACHE_SIZE;
+
+		if (cache.packets[index_in_cache] == undefined) {
+			throw new Error("Missing chunk " + index);
+		}
+
+		console.log(cache.packets[index_in_cache]);
+	}
+
+	async get_cache(cache_id: number): Promise<ChunkCache> {
+		const cache = this.chunk_cache[cache_id];
+		if (cache == undefined) {
+			console.log("Cache miss on " + cache_id.toString());
+			if (this.zip == null) throw new Error("Zip file missing");
+			const file = await this.zip.file("level_chunk_caches/" + cache_id.toString());
+			if (file == null) {
+				throw new Error("Chunk cache file missing.");
+			}
+			const raw = new Uint8Array(await file.async("arraybuffer"));
+			const reader = new ByteReader(raw);
+			const packets: Chunk[] = [];
+
+			while (true) {
+				if (!reader.has(4)) {
+					break;
+				}
+
+				const size = reader.read_int();
+				console.log(size);
+
+				reader.position -= 4;
+
+				const chunk = new ByteReader(reader.take(size + 4));
+
+				chunk.read_int();
+
+				chunk.read_varint();
+
+				const chunk_res = {
+					x: chunk.read_int(),
+					y: chunk.read_int(),
+				};
+
+				const len = chunk.read_varint();
+
+				for (let i = 0; i < len; i++) {
+					const type = chunk.read_varint();
+					const length = chunk.read_varint();
+
+					for (let j = 0; j < length; j++) {
+						const long = chunk.read_long();
+					}
+				}
+
+				const data_length = chunk.read_varint();
+
+				for (let i = 0; i < 24; i++) {
+					const block_count = chunk.read_short();
+					console.log(block_count, "blocks.");
+					chunk.read_block_data();
+					chunk.read_biome_data();
+				}
+
+				packets.push(chunk_res);
+			}
+
+			const res: ChunkCache = {
+				packets: packets,
+			};
+			this.chunk_cache[cache_id] = res;
+			return res;
+		} else {
+			return cache;
+		}
+	}
+
 	async findGames(input: Uint8Array): Promise<FullMatchInsertData[]> {
 		const zip = new JSZip();
+
+		this.zip = zip;
 
 		await zip.loadAsync(input);
 
@@ -443,7 +549,7 @@ export default class Flashback {
 			for (const action of actions) {
 				const parser = ActionParsers[action.action];
 				if (parser != undefined) {
-					parser.call(this, this, new ByteReader(action.data));
+					await parser.call(this, this, new ByteReader(action.data));
 				}
 			}
 		}

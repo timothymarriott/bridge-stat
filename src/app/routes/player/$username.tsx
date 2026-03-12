@@ -2,7 +2,7 @@ import { usePlayerInfo, useQueryData } from "@/app/auth-hooks";
 import MinecraftAvatar from "@/app/components/mc-avatar";
 import PlayerDetails from "@/app/components/player-details";
 import PlayerPerformancesList from "@/app/components/player-performances-list";
-import { matchesQuery, playersQuery } from "@/app/queries";
+import { playersQuery } from "@/app/queries";
 import { router } from "@/app/router";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,15 +30,11 @@ import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { CalculateElos, EloInformation } from "@/lib/stats";
-import { PlayerInformation, Team } from "@/worker/types";
+import { Team } from "@/worker/types";
 import { createFileRoute } from "@tanstack/react-router";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/player/$username")({
-	beforeLoad: async ({ context }) => {
-		const matches = context.queryClient.ensureQueryData(matchesQuery);
-		return { matches };
-	},
 	component: User,
 });
 
@@ -53,24 +49,9 @@ export type FilterState = {
 	theirTeamCount: number;
 };
 
-function PerformanceList({
-	player,
-	sortMode,
-	filterState,
-}: {
-	player: PlayerInformation;
-	sortMode: SortMode;
-	filterState: FilterState;
-}) {
-	return <PlayerPerformancesList player={player} sortMode={sortMode} filterState={filterState} />;
-}
-
-const PerformanceListComponent = React.memo(PerformanceList);
-
 function User() {
 	const { username } = Route.useParams();
-	const matches = useQueryData(matchesQuery);
-	const res = usePlayerInfo(username);
+
 	const [kdr, setKDR] = useState<number>(1);
 
 	const [winCount, setWinCount] = useState<number>(0);
@@ -78,39 +59,52 @@ function User() {
 	const [lossCount, setLossCount] = useState<number>(0);
 	const isMobile = useIsMobile();
 
-	const players = useQueryData(playersQuery, []);
+	const data = useQueryData(playersQuery);
+
+	const matches = data?.matches ?? null;
+	const players = data?.players ?? [];
+
+	const player = usePlayerInfo(username);
+	``;
+	if (matches && player?.exists) {
+		player.performances = [];
+		for (const match of Object.values(matches)) {
+			const perf = [...match.blue_players, ...match.red_players].find(
+				(p) => p.user == player.id,
+			);
+			if (perf != undefined) player.performances.push(perf);
+		}
+	}
+
+	console.log(players);
 
 	const [elos, setElos] = useState<EloInformation | null>(null);
 
-	const [selectedMatch, setSelectedMatch] = useState<number>(-1);
-
-	const ctxValue = React.useMemo(
-		() => ({
-			selected: selectedMatch,
-			setSelected: setSelectedMatch,
-		}),
-		[selectedMatch],
-	);
+	const [loading, setLoading] = useState<boolean>(false);
 
 	useEffect(() => {
-		if (res != null && matches != null && res.exists) {
+		if (player != null && matches != null && player.exists && loading) {
+			setLoading(false);
+		}
+		console.log(player, matches);
+		if (player != null && player.exists && matches != null) {
 			let total_kills = 0;
 			let total_deaths = 0;
 
 			let total_goals = 0;
 
-			for (let i = 0; i < res.performances.length; i++) {
-				total_kills += res.performances[i].kills;
-				total_deaths += res.performances[i].deaths;
-				total_goals += res.performances[i].scores;
+			for (let i = 0; i < player.performances.length; i++) {
+				total_kills += player.performances[i].kills;
+				total_deaths += player.performances[i].deaths;
+				total_goals += player.performances[i].scores;
 			}
 			setKDR(total_kills / total_deaths);
-			setGoalsPerGame(total_goals / res.performances.length);
+			setGoalsPerGame(total_goals / player.performances.length);
 
 			let win_count = 0;
 			let loss_count = 0;
 
-			res.performances.map((perf) => {
+			player.performances.map((perf) => {
 				if (perf.match == null) return null;
 
 				const match = matches[perf.match];
@@ -144,7 +138,7 @@ function User() {
 			setWinCount(win_count);
 			setLossCount(loss_count);
 		}
-	}, [res, matches]);
+	}, [player, matches, username]);
 
 	useEffect(() => {
 		if (matches != null && players.length > 0) {
@@ -152,7 +146,7 @@ function User() {
 
 			setElos(elo);
 		}
-	}, [matches, players]);
+	}, [data, username]);
 
 	const [sortMode, setSortMode] = useState<SortMode>(SortMode.NewToOld);
 	const [filterState, setFilterState] = useState<FilterState>({
@@ -168,17 +162,18 @@ function User() {
 
 	return (
 		<div className="flex flex-col h-full space-y-2">
-			{res == null || matches == null ? (
+			{player == null || matches == null ? (
 				<div className="flex flex-col items-center">
 					<Spinner className="size-16" />
 					<div className="w-full text-center h-full">Loading...</div>
 				</div>
-			) : res.exists ? (
+			) : player.exists ? (
 				<>
 					<Card className="ring-sidebar-border rounded-lg min-h-[62.7667px] shrink-0">
 						<CardHeader>
 							<CardTitle className="flex flex-row items-center space-x-2 text-lg">
-								<MinecraftAvatar uuid={res.uuid} /> <span>{res.username}</span>
+								<MinecraftAvatar uuid={player.uuid} />{" "}
+								<span>{player.username}</span>
 							</CardTitle>
 						</CardHeader>
 						<CardContent className="text-sm flex flex-row space-x-3 flex-wrap">
@@ -230,11 +225,15 @@ function User() {
 							</CardHeader>
 							<CardContent className="flex-1 min-h-0 px-1">
 								<ScrollArea className="h-full px-3">
-									<PerformanceListComponent
-										player={res}
-										sortMode={sortMode}
-										filterState={filterState}
-									/>
+									{loading ? (
+										<p>Loading...</p>
+									) : (
+										<PlayerPerformancesList
+											player={player}
+											sortMode={sortMode}
+											filterState={filterState}
+										/>
+									)}
 								</ScrollArea>
 							</CardContent>
 						</Card>
@@ -349,11 +348,15 @@ function User() {
 								</CardHeader>
 								<CardContent className="flex-1 min-h-0 px-1">
 									<ScrollArea className="h-full px-3">
-										<PerformanceListComponent
-											player={res}
-											sortMode={sortMode}
-											filterState={filterState}
-										/>
+										{loading ? (
+											<p>Loading...</p>
+										) : (
+											<PlayerPerformancesList
+												player={player}
+												sortMode={sortMode}
+												filterState={filterState}
+											/>
+										)}
 									</ScrollArea>
 								</CardContent>
 							</Card>
@@ -367,7 +370,7 @@ function User() {
 										{elos != null ? (
 											<>
 												<PlayerDetails
-													player={res}
+													player={player}
 													elos={elos}
 													players={players}
 													matches={matches}

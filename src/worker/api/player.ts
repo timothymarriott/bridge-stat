@@ -1,8 +1,8 @@
 import { Hono } from "hono";
-import { better_auth } from "./auth";
 import { GetPlayerInformationByUser, GetPlayerInformationByUsername, GetUsers } from "../requests";
 import { OptionalPlayerInformation } from "../types";
 import { TypedResponse } from "hono/types";
+import { better_auth } from "../better_auth";
 
 export const player = new Hono<{
 	Variables: {

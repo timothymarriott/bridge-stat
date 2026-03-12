@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { ReactNode, useRef } from "react";
-import Flashback from "../flashback";
+import Flashback from "../../lib/flashback";
 import { FullMatchInsertData } from "@/worker/types";
 
 export default function UploadMatchDialog({ children }: { children: ReactNode }) {
@@ -41,56 +41,54 @@ export default function UploadMatchDialog({ children }: { children: ReactNode })
 										files.push(file);
 									}
 
-
 									files.sort((a, b) => a.lastModified - b.lastModified);
 
 									let i = 0;
 
-									await Promise.allSettled(files.map(async file => {
+									await Promise.allSettled(
+										files.map(async (file) => {
+											try {
+												const flashback = new Flashback(file.lastModified);
+												const res = await flashback.findGames(
+													await file.bytes(),
+												);
+												matches.push(...res);
 
-										try {
-											const flashback = new Flashback(file.lastModified);
-											const res = await flashback.findGames(
-												await file.bytes(),
-											);
-											matches.push(...res);
+												let j = 0;
 
-											let j = 0;
+												for (const match of res) {
+													console.log(
+														`${i}/${files.length} (${j}/${res.length}) ${file.name} ${file.lastModified}`,
+													);
 
-											for (const match of res) {
-												console.log(`${i}/${files.length} (${j}/${res.length}) ${file.name} ${file.lastModified}`)
+													match.red_players.forEach((v) => {
+														v.username = v.username
+															.replace("JoeBartLover", "TheMoon021")
+															.replace("Jordano120", "Tetron_");
+													});
 
-												match.red_players.forEach((v) => {
-													v.username = v.username
-														.replace("JoeBartLover", "TheMoon021")
-														.replace("Jordano120", "Tetron_");
-												});
+													match.blue_players.forEach((v) => {
+														v.username = v.username
+															.replace("JoeBartLover", "TheMoon021")
+															.replace("Jordano120", "Tetron_");
+													});
+													await fetch("/api/admin/upload", {
+														credentials: "include",
+														method: "POST",
+														body: JSON.stringify(match),
+													});
 
-												match.blue_players.forEach((v) => {
-													v.username = v.username
-														.replace("JoeBartLover", "TheMoon021")
-														.replace("Jordano120", "Tetron_");
-												});
-												await fetch("/api/admin/upload", {
-													credentials: "include",
-													method: "POST",
-													body: JSON.stringify(match),
-												});
+													j++;
+												}
 
+												console.log(
+													`${i}/${files.length} (${j}/${res.length}) ${file.name} ${file.lastModified}`,
+												);
+											} catch {}
 
-												j++;
-											}
-
-											console.log(`${i}/${files.length} (${j}/${res.length}) ${file.name} ${file.lastModified}`)
-
-
-
-										} catch {
-
-										}
-
-										i++;
-									}))
+											i++;
+										}),
+									);
 
 									console.log(matches);
 								}
