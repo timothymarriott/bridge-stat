@@ -8,6 +8,7 @@ import {
 } from "@/worker/types";
 import { TeamInfo } from "./player-performances-list";
 import { Separator } from "@/components/ui/separator";
+import { ScoreDistrobutionChart } from "./score-distrobution-chart";
 
 export function MatchInfo({
 	perf,
