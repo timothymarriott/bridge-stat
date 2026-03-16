@@ -1,13 +1,6 @@
 "use client";
 
-import {
-	CloudIcon,
-	GitCommitIcon,
-	LayoutDashboardIcon,
-	LogOut,
-	MonitorIcon,
-	UploadIcon,
-} from "lucide-react";
+import { CloudIcon, LayoutDashboardIcon, LogOut, MonitorIcon, UploadIcon } from "lucide-react";
 import { SiDiscord, SiGoogle } from "@icons-pack/react-simple-icons";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -25,7 +18,7 @@ import {
 	useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { useBetterAuth, useAuth as useAuth, isAuthLoading } from "@/app/auth-hooks";
+import { useBetterAuth, useAuth as useAuth, useIsAuthLoading } from "@/app/auth-hooks";
 import { queryClient, router } from "@/app/router";
 import MinecraftAvatar from "../mc-avatar";
 import { proxy } from "@/lib/utils";
@@ -34,12 +27,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import UploadMatchDialog from "../upload-match-dialog";
 import { DialogTrigger } from "@/components/ui/dialog";
-import { useNative } from "@/app/native/hooks";
+import { useNative } from "@/app/native/context";
 
 export function SidebarUser() {
 	const auth = useAuth();
 
-	const is_auth_loading = isAuthLoading();
+	const is_auth_loading = useIsAuthLoading();
 
 	const better_auth = useBetterAuth();
 
@@ -130,11 +123,11 @@ export function SidebarUser() {
 
 								<DropdownMenuSeparator />
 
-								{(auth.is_admin ?? 0 > 0) ? (
+								{auth.is_admin ? (
 									<>
 										<DropdownMenuItem
 											onClick={() => {
-												router.navigate({
+												void router.navigate({
 													to: "/admin",
 												});
 											}}
@@ -158,12 +151,14 @@ export function SidebarUser() {
 
 								<DropdownMenuItem
 									variant="destructive"
-									onClick={async () => {
-										await better_auth.signOut();
-										router.navigate({
-											to: "/",
-										});
-										await queryClient.refetchQueries(authQuery);
+									onClick={() => {
+										void (async () => {
+											await better_auth.signOut();
+											await router.navigate({
+												to: "/",
+											});
+											await queryClient.refetchQueries(authQuery);
+										})();
 									}}
 								>
 									<LogOut />
@@ -189,7 +184,7 @@ export function SidebarUser() {
 						<DropdownMenuContent>
 							<DropdownMenuItem
 								onClick={() => {
-									better_auth.signIn.social({
+									void better_auth.signIn.social({
 										provider: "discord",
 									});
 								}}
@@ -199,7 +194,7 @@ export function SidebarUser() {
 
 							<DropdownMenuItem
 								onClick={() => {
-									better_auth.signIn.social({
+									void better_auth.signIn.social({
 										provider: "google",
 									});
 								}}

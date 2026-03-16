@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { authQuery } from "../queries";
 import LinkRequestList from "../components/link-request-list";
 import UserList from "../components/user-list";
-import { useNative } from "../native/hooks";
 
 export const Route = createFileRoute("/admin")({
 	beforeLoad: async ({ context }) => {
@@ -23,7 +22,6 @@ export const Route = createFileRoute("/admin")({
 });
 
 export function Admin() {
-	const native = useNative();
 	return (
 		<div className={"space-y-2 pb-2"}>
 			<UserList />

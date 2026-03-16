@@ -19,5 +19,11 @@
     },
     "search.exclude": {
         "**/routeTree.gen.ts": true
+    },
+    "eslint.codeAction.disableRuleComment": {
+        "enable": false
+    },
+    "eslint.codeAction.showDocumentation": {
+        "enable": false
     }
 }

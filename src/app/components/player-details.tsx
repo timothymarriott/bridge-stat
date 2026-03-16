@@ -4,14 +4,11 @@ import {
 	ChartTooltip,
 	ChartTooltipContent,
 } from "@/components/ui/chart";
-import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EloInformation, GetELO, MatchEloInformation } from "@/lib/stats";
-import { Match, OptionalPlayerInformation, PlayerInformation, Team } from "@/worker/types";
-import React from "react";
-import { Area, AreaChart, CartesianGrid, ReferenceArea, XAxis, YAxis } from "recharts";
+import { Match, OptionalPlayerInformation, PlayerInformation } from "@/worker/types";
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { Rating } from "ts-trueskill";
-import { TeamInfo } from "./player-performances-list";
 import { MatchInfo } from "./match-info";
 
 const eloChartConfig = {
@@ -40,7 +37,6 @@ export default function PlayerDetails({
 	player,
 	elos,
 	players,
-	matches,
 }: {
 	player: PlayerInformation;
 	elos: EloInformation;
@@ -66,14 +62,11 @@ export default function PlayerDetails({
 
 	let totalMatches = 0;
 
-	let totalKill = 0;
-	let totalDeath = 0;
-
 	Object.values(elos.matches).forEach((v) => {
 		const performance = [...v.match.blue_players, ...v.match.red_players].find(
 			(p) => p.user == player.id,
 		);
-		if (v.totals[player.id] != undefined && performance != undefined) {
+		if (performance != undefined) {
 			totalMatches++;
 			eloChartData.push({
 				date: v.match.id,
@@ -82,9 +75,6 @@ export default function PlayerDetails({
 				rating: v.totals[player.id],
 				info: v,
 			});
-
-			totalKill += performance.kills;
-			totalDeath += performance.deaths;
 
 			if (
 				v.match.blue_scores > v.match.red_scores &&
@@ -145,7 +135,7 @@ export default function PlayerDetails({
 								content={
 									<ChartTooltipContent
 										hideLabel
-										formatter={(value, name, item, index) => {
+										formatter={(_value, _name, item, index) => {
 											if (index == 0) {
 												const payload = item.payload as {
 													date: number;

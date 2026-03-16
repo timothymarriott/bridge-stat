@@ -1,9 +1,12 @@
 import { env } from "cloudflare:workers";
 import { drizzle } from "drizzle-orm/d1";
-import { Context } from "hono";
+import { Context, Input } from "hono";
 import { better_auth } from "./better_auth";
 
-export let db = drizzle(env.bridge!);
+if (env.bridge == undefined) {
+	throw new Error("No database provided.");
+}
+export let db = drizzle(env.bridge);
 
 export function UpdateDB(
 	c: Context<
@@ -15,8 +18,11 @@ export function UpdateDB(
 			};
 		},
 		"*",
-		any
+		Input
 	>,
 ) {
-	db = drizzle(c.env.bridge!);
+	if (c.env.bridge == undefined) {
+		throw new Error("No database provided.");
+	}
+	db = drizzle(c.env.bridge);
 }

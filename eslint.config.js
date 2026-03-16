@@ -3,15 +3,35 @@ import globals from "globals";
 import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
+import { defineConfig } from "eslint/config";
 
-export default tseslint.config(
-	{ ignores: ["dist"] },
+export default defineConfig(
 	{
-		extends: [js.configs.recommended, ...tseslint.configs.recommendedTypeChecked, ...tseslint.configs.strictTypeChecked, ...tseslint.configs.stylisticTypeChecked],
+		ignores: [
+			"dist",
+			"node_modules",
+			"worker-configuration.d.ts",
+			".wrangler",
+			"drizzle.config.ts",
+			"electrobun.config.ts",
+			"src/routeTree.gen.ts",
+			"src/components/ui",
+		],
+	},
+	{
+		extends: [
+			js.configs.recommended,
+			...tseslint.configs.recommendedTypeChecked,
+			...tseslint.configs.strictTypeChecked,
+			...tseslint.configs.stylisticTypeChecked,
+		],
 		files: ["**/*.{ts,tsx}"],
 		languageOptions: {
 			ecmaVersion: 2020,
 			globals: globals.browser,
+			parserOptions: {
+				projectService: true,
+			},
 		},
 		plugins: {
 			"react-hooks": reactHooks,
@@ -19,10 +39,7 @@ export default tseslint.config(
 		},
 		rules: {
 			...reactHooks.configs.recommended.rules,
-			"react-refresh/only-export-components": [
-				"warn",
-				{ allowConstantExport: true },
-			],
+			"react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
 		},
 	},
 );

@@ -29,7 +29,7 @@ const InternalAvatarComponent = React.memo(InternalAvatar);
 
 function InternalAvatar({ uuid, size }: { uuid: string; size?: string }) {
 	return (
-		<Avatar className={"rounded-sm after:rounded-sm " + (size != undefined ? size : "")}>
+		<Avatar className={"rounded-sm after:rounded-sm " + (size ?? "")}>
 			<AvatarFallback className="rounded-sm">
 				<Skeleton className="size-full rounded-sm"></Skeleton>
 			</AvatarFallback>

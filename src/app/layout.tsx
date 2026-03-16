@@ -1,9 +1,9 @@
-import { SidebarInset, SidebarProvider, useSidebar } from "@/components/ui/sidebar";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { LayoutSidebar } from "./components/layout/sidebar";
 
 import AccountIntroDialog from "./components/account-intro-dialog";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/lib/use-mobile";
 import SidebarToggle from "./components/layout/sidebar-toggle";
 import { useAuth } from "./auth-hooks";
 import MinecraftAvatar from "./components/mc-avatar";
@@ -37,9 +37,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 														uuid={auth.uuid}
 													/>
 												) : null}
-												<span>
-													{auth.username ? auth.username : auth.name}
-												</span>
+												<span>{auth.username ?? auth.name}</span>
 											</>
 										) : (
 											<>Signed Out</>
@@ -49,9 +47,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 								<div className="w-full h-full">{children}</div>
 							</SidebarInset>
 						) : (
-							<SidebarInset className={"p-2 h-screen " + (isMobile ? "" : "pl-0 ")}>
-								{children}
-							</SidebarInset>
+							<SidebarInset className={"p-2 h-screen pl-0"}>{children}</SidebarInset>
 						)}
 						<AccountIntroDialog />
 					</div>

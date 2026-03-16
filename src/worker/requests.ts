@@ -97,14 +97,13 @@ export async function GetMatches(): Promise<Record<string, Match>> {
 
 	const result: Record<string, Match> = {};
 	for (const match of raw) {
-		if (result[match.match.id] == undefined) {
+		if (!(match.match.id in result)) {
 			result[match.match.id] = {
 				...match.match,
 				red_players: [],
 				blue_players: [],
 			};
 		}
-
 		if (match.performance != null && match.performance.team == Team.RED) {
 			result[match.match.id].red_players.push(match.performance);
 		}
@@ -130,9 +129,7 @@ export async function GetUsers() {
 
 	const result: UserInformation[] = await Promise.all(
 		raw.map(async (value) => {
-			if (value.profile == null) {
-				value.profile = await CreateUserProfile(value.user.id);
-			}
+			value.profile ??= await CreateUserProfile(value.user.id);
 			if (value.profile.uuid != null && value.profile.username == null) {
 				const data = await FetchMojangProfile(value.profile.uuid);
 				value.profile.username = data.username;
@@ -170,12 +167,6 @@ export async function GetUserInformationById(id: string): Promise<OptionalUserIn
 		),
 	]);
 
-	if (raw == undefined) {
-		return {
-			exists: false,
-		};
-	}
-
 	if (profile.uuid != null && profile.username == null) {
 		const data = await FetchMojangProfile(profile.uuid);
 		profile.username = data.username;
@@ -211,12 +202,6 @@ export async function GetUserInformationByUsername(
 		"Reaching out to cloudflare to fetch user",
 	);
 
-	if (raw == undefined) {
-		return {
-			exists: false,
-		};
-	}
-
 	if (profile.uuid != null && profile.username == null) {
 		const data = await FetchMojangProfile(profile.uuid);
 		profile.username = data.username;
@@ -239,9 +224,7 @@ export async function GetUserInformationByUsername(
 	};
 }
 
-export async function GetPlayerInformationByUser(
-	user: UserInformation,
-): Promise<OptionalPlayerInformation> {
+export function GetPlayerInformationByUser(user: UserInformation): OptionalPlayerInformation {
 	if (user.uuid) {
 		return {
 			...user,
@@ -284,7 +267,7 @@ export async function GetPlayerInformationByUsername(
 		};
 	}
 
-	if (user.exists && user.uuid) {
+	if (user.uuid) {
 		return {
 			...user,
 			performances: [],

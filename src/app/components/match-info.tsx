@@ -6,9 +6,8 @@ import {
 	PlayerPerformance,
 	Team,
 } from "@/worker/types";
-import { TeamInfo } from "./player-performances-list";
+import { TeamInfoComponent } from "./player-performances-list";
 import { Separator } from "@/components/ui/separator";
-import { ScoreDistrobutionChart } from "./score-distrobution-chart";
 
 export function MatchInfo({
 	perf,
@@ -52,15 +51,35 @@ export function MatchInfo({
 				</div>
 				<div className="justify-between grid grid-cols-[auto_1fr_auto] rounded-sm items-center">
 					{perf.team == Team.RED ? (
-						<TeamInfo match={match} players={players} team={Team.RED} side="left" />
+						<TeamInfoComponent
+							match={match}
+							players={players}
+							team={Team.RED}
+							side="left"
+						/>
 					) : (
-						<TeamInfo match={match} players={players} team={Team.BLUE} side="left" />
+						<TeamInfoComponent
+							match={match}
+							players={players}
+							team={Team.BLUE}
+							side="left"
+						/>
 					)}
 					<span className="text-center">vs</span>
 					{perf.team == Team.RED ? (
-						<TeamInfo match={match} players={players} team={Team.BLUE} side="right" />
+						<TeamInfoComponent
+							match={match}
+							players={players}
+							team={Team.BLUE}
+							side="right"
+						/>
 					) : (
-						<TeamInfo match={match} players={players} team={Team.RED} side="right" />
+						<TeamInfoComponent
+							match={match}
+							players={players}
+							team={Team.RED}
+							side="right"
+						/>
 					)}
 				</div>
 			</div>

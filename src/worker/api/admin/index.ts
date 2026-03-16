@@ -1,5 +1,4 @@
 import { Hono, TypedResponse } from "hono";
-import { RequireAdmin } from "../../utils";
 import { GetPlayerInformationByUser, GetUsers } from "../../requests";
 import link from "./link";
 import {
@@ -10,7 +9,7 @@ import {
 } from "../../types";
 import { RequireAuthInformation } from "../..";
 import { db } from "../../database";
-import { matches, user_performances } from "../../schema";
+import { matches, user_performances, user_profiles } from "../../schema";
 import { eq } from "drizzle-orm";
 import { better_auth } from "../../better_auth";
 
@@ -21,44 +20,60 @@ export const admin = new Hono<{
 	};
 }>()
 	.use("*", RequireAuthInformation)
-	.use("*", RequireAdmin)
-	.route("/link", link)
-	.post("/delete/:id", async (c) => {
-		const { id } = c.req.param();
+	.use("*", async (c, next) => {
+		const user = c.get("user");
 
-		return c.text("Ok", 200);
+		if (!user) {
+			return c.body("Unauthorized", 401);
+		}
+
+		const [profile] = await db
+			.select({ isAdmin: user_profiles.is_admin })
+			.from(user_profiles)
+			.where(eq(user_profiles.id, user.id))
+			.limit(1);
+
+		if (profile.isAdmin == 0) {
+			return c.body("Forbidden", 403);
+		}
+
+		return next();
 	})
+	.route("/link", link)
 	.post<"/upload">("/upload", async (c) => {
 		const text = await c.req.text();
-		const data: FullMatchInsertData = await JSON.parse(text);
+		const data: FullMatchInsertData = (await JSON.parse(text)) as FullMatchInsertData;
 
 		const users = await GetUsers();
 
-		const players = await Promise.all(users.map((usr) => GetPlayerInformationByUser(usr)));
+		const players = users.map((usr) => GetPlayerInformationByUser(usr));
 
 		let hash_number = data.duration;
 
-		[...data.red_players, ...data.blue_players].forEach(p => {
+		[...data.red_players, ...data.blue_players].forEach((p) => {
 			hash_number ^= p.scores;
 			hash_number ^= p.kills;
 			hash_number ^= p.deaths;
-		})
+		});
 
 		const hash_data = {
 			duration: data.duration,
 			map: data.map,
-			hash: (data.duration ?? 0) ^ hash_number
-		}
+			hash: data.duration ^ hash_number,
+		};
 
 		const encoder = new TextEncoder();
-		const hash = await crypto.subtle.digest("SHA-256", encoder.encode(JSON.stringify(hash_data)));
+		const hash = await crypto.subtle.digest(
+			"SHA-256",
+			encoder.encode(JSON.stringify(hash_data)),
+		);
 		const hashArray = Array.from(new Uint8Array(hash));
-  		const hashhex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+		const hashhex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 
 		const match_data: MatchInsertData = {
 			...data,
 			uploaded_at: data.date,
-			hash: hashhex
+			hash: hashhex,
 		};
 
 		const existingMatch = await db
@@ -73,7 +88,6 @@ export const admin = new Hono<{
 		}
 
 		const [match] = await db.insert(matches).values(match_data).returning();
-
 
 		const perfs: PlayerPerformanceInsertData[] = [];
 
@@ -101,7 +115,7 @@ export const admin = new Hono<{
 
 		return c.body(null, 200);
 	})
-	.get<"/users", {}, TypedResponse<UserInformation[]>>("/users", async (c) => {
+	.get<"/users", object, TypedResponse<UserInformation[]>>("/users", async (c) => {
 		return c.json<UserInformation[]>(await GetUsers());
 	});
 

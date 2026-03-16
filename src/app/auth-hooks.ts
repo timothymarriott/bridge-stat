@@ -1,12 +1,12 @@
 import { useQuery, UseQueryOptions } from "@tanstack/react-query";
-import { api_client, authQuery, betterAuthQuery } from "./queries";
+import { api_client, authQuery } from "./queries";
 import {
-	Match,
 	OptionalPlayerInformation,
 	OptionalUserInformation,
 	PlayerInformation,
 } from "@/worker/types";
 import { queryClient, router } from "./router";
+import { createAuthClient } from "better-auth/react";
 
 export function useAuth(): OptionalUserInformation {
 	const profile = useQueryData(authQuery, {
@@ -16,18 +16,24 @@ export function useAuth(): OptionalUserInformation {
 	return profile;
 }
 
-export function isAuthLoading(): boolean {
+export function useIsAuthLoading(): boolean {
 	const profile = useQueryData(authQuery);
 
 	return profile == null;
 }
 
+const auth = createAuthClient({
+	baseURL: import.meta.env.PROD
+		? "https://bridge-stat.timothyrmarriott.workers.dev"
+		: "http://localhost:5173",
+});
+
 export function useBetterAuth() {
-	return useQueryData(betterAuthQuery)!;
+	return auth;
 }
 
 export function usePlayerInfo(username: string) {
-	return useQueryData({
+	const player = useQueryData({
 		queryKey: ["todos", username],
 		staleTime: 60 * 5 * 1000,
 		queryFn: async (): Promise<OptionalPlayerInformation> => {
@@ -37,7 +43,7 @@ export function usePlayerInfo(username: string) {
 				},
 			});
 			if (!data.ok) {
-				router.navigate({
+				await router.navigate({
 					to: "/",
 				});
 				return {
@@ -52,10 +58,12 @@ export function usePlayerInfo(username: string) {
 			};
 		},
 	});
+
+	return player;
 }
 
-export function dirtyQueryData<TData>(options: UseQueryOptions<TData>) {
-	queryClient.refetchQueries(options);
+export async function dirtyQueryData<TData>(options: UseQueryOptions<TData>) {
+	await queryClient.refetchQueries(options);
 }
 
 export function useQueryData<TData>(options: UseQueryOptions<TData>): TData | null;

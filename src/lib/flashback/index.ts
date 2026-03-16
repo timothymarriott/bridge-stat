@@ -3,9 +3,8 @@ import { ByteReader } from "./byteReader";
 
 import rawpackets from "./packets.json";
 import { FullMatchInsertData, MatchPlayerInsertData, Team } from "@/worker/types";
-import { MAP_NAMES } from "@/lib/data";
 
-export type PacketGroup = {
+export interface PacketGroup {
 	clientbound?: Record<
 		string,
 		{
@@ -18,7 +17,7 @@ export type PacketGroup = {
 			protocol_id: number;
 		}
 	>;
-};
+}
 
 const packets: {
 	configuration: PacketGroup;
@@ -34,18 +33,16 @@ Object.keys(packets.play.clientbound ?? {}).forEach((key) => {
 		return;
 	}
 	const v = packets.play.clientbound[key];
-	if (!v) {
-		return;
-	}
+
 	play_packets[v.protocol_id] = key;
 });
 
-export type FlashbackChunkMetadata = {
+export interface FlashbackChunkMetadata {
 	duration: number;
 	forcePlaySnapshot: boolean;
-};
+}
 
-export type FlashbackMetadata = {
+export interface FlashbackMetadata {
 	uuid: string;
 	name: string;
 	version_string: string;
@@ -55,7 +52,7 @@ export type FlashbackMetadata = {
 	total_ticks: number;
 	customNamespacesForRegistries: object;
 	chunks: Record<string, FlashbackChunkMetadata>;
-};
+}
 
 const SUPPORTED_VERSION_STRING = "1.21.8";
 const SUPPORTED_DATA_VERSION = 4440;
@@ -78,9 +75,9 @@ export type TextComponent = {
 
 	insertion?: string;
 
-	click_event?: {};
+	click_event?: object;
 
-	hover_event?: {};
+	hover_event?: object;
 } & (
 	| {
 			type: undefined;
@@ -113,12 +110,11 @@ export type TextComponent = {
 	  }
 );
 
-export const PacketParsers: Record<
-	string,
-	(flashback: Flashback, reader: ByteReader) => Promise<void>
-> = {
-	"minecraft:system_chat": async (flashback, reader) => {
-		const content = reader.read_nbt<TextComponent>();
+export type PacketParser = (flashback: Flashback, reader: ByteReader) => Promise<void> | void;
+
+export const PacketParsers: Record<string, PacketParser | undefined> = {
+	"minecraft:system_chat": (flashback, reader) => {
+		const content = reader.read_nbt() as TextComponent;
 
 		if (content.extra) {
 			if (flashback.reading_winners && flashback.current_match != null) {
@@ -128,7 +124,7 @@ export const PacketParsers: Record<
 				for (const element of content.extra) {
 					if (element.click_event && element.text) {
 						flashback.ensure_player(element.text.trim());
-						flashback.current_match.players[element.text.trim()]!.team =
+						flashback.current_match.players[element.text.trim()].team =
 							flashback.current_match.winner == "Red" ? Team.RED : Team.BLUE;
 						winners.push(element.text.trim());
 					}
@@ -142,7 +138,7 @@ export const PacketParsers: Record<
 				for (const element of content.extra) {
 					if (element.click_event && element.text) {
 						flashback.ensure_player(element.text.trim());
-						flashback.current_match.players[element.text.trim()]!.team =
+						flashback.current_match.players[element.text.trim()].team =
 							flashback.current_match.winner == "Red" ? Team.BLUE : Team.RED;
 						losers.push(element.text.trim());
 					}
@@ -189,23 +185,26 @@ export const PacketParsers: Record<
 					if (flashback.current_match) {
 						flashback.current_match.winner = content.extra[0].color as "Red" | "Blue";
 						flashback.ensure_player(plr);
-						flashback.current_match.players[plr]!.scores += 1;
+						flashback.current_match.players[plr].scores += 1;
 					}
 				}
 
 				if (content.extra[0]?.color && content.extra[2]?.color) {
 					if (
-						(content.extra[0].color == "red" && content.extra[2].color == "blue") ||
-						(content.extra[0].color == "blue" && content.extra[2].color == "red")
+						((content.extra[0].color == "red" && content.extra[2].color == "blue") ||
+							(content.extra[0].color == "blue" &&
+								content.extra[2].color == "red")) &&
+						content.extra[0].text &&
+						content.extra[2].text
 					) {
-						const died = content.extra[0].text!.trim();
-						const killer = content.extra[2].text!.trim();
+						const died = content.extra[0].text.trim();
+						const killer = content.extra[2].text.trim();
 
 						if (flashback.current_match) {
 							flashback.ensure_player(died);
-							flashback.current_match.players[died]!.deaths += 1;
+							flashback.current_match.players[died].deaths += 1;
 							flashback.ensure_player(killer);
-							flashback.current_match.players[killer]!.kills += 1;
+							flashback.current_match.players[killer].kills += 1;
 						}
 					}
 				}
@@ -230,37 +229,26 @@ export const PacketParsers: Record<
 				) {
 					const died = content.extra[0].text.trim();
 					flashback.ensure_player(died);
-					flashback.current_match.players[died]!.voids += 1;
+					flashback.current_match.players[died].voids += 1;
 				}
 			}
 		}
 	},
-	"minecraft:set_subtitle_text": async (flashback, reader) => {
-		const content = reader.read_nbt<TextComponent>();
-		if (
-			content.extra &&
-			content.extra.length == 2 &&
-			content.extra[1]?.text == " won the Match!"
-		) {
+	"minecraft:set_subtitle_text": (flashback, reader) => {
+		const content = reader.read_nbt() as TextComponent;
+		if (content.extra?.length == 2 && content.extra[1]?.text == " won the Match!") {
 			flashback.end_match();
 		}
 	},
 };
 
-const CHUNK_CACHE_SIZE = 10000;
-
-export const ActionParsers: Record<
-	string,
-	(flasback: Flashback, reader: ByteReader) => Promise<void>
-> = {
-	"flashback:action/next_tick": async (flashback) => {
+export const ActionParsers: Record<string, PacketParser | undefined> = {
+	"flashback:action/next_tick": (flashback) => {
 		flashback.tick += 1;
 	},
 	"flashback:action/game_packet": async (flashback, reader) => {
 		const packet_id = reader.read_varint();
 		const packet_name = play_packets[packet_id];
-		if (packet_name == undefined) return;
-
 		const packet_data = reader.remaining_buffer();
 
 		const parser = PacketParsers[packet_name];
@@ -268,46 +256,39 @@ export const ActionParsers: Record<
 			await parser.call(flashback, flashback, new ByteReader(packet_data));
 		}
 	},
-	"flashback:action/level_chunk_cached": async (flashback, reader) => {
-		const num = reader.read_varint();
-		console.log(num);
-		await flashback.get_chunk(num);
-	},
 };
 
-export type MatchState = {
+export interface MatchState {
 	start_tick: number;
 	end_tick: number;
 	players: Record<string, MatchPlayerInsertData>;
 	map: string | undefined;
 	winner: "Red" | "Blue";
-};
+}
 
-export type Chunk = {
+export interface Chunk {
 	x: number;
 	y: number;
-};
+}
 
-export type ChunkCache = {
+export interface ChunkCache {
 	packets: Chunk[];
-};
+}
 
 export default class Flashback {
-	metadata: FlashbackMetadata = null!;
+	metadata: FlashbackMetadata | null = null;
 
-	tick: number = 0;
+	tick = 0;
 
-	reading_winners: boolean = false;
-	reading_losers: boolean = false;
+	reading_winners = false;
+	reading_losers = false;
 
-	reading_game: boolean = false;
+	reading_game = false;
 
 	matches: FullMatchInsertData[] = [];
 	current_match: MatchState | null = null;
 
-	date: number = 0;
-
-	chunk_cache: Record<number, ChunkCache> = {};
+	date = 0;
 
 	zip: JSZip | null = null;
 
@@ -321,16 +302,14 @@ export default class Flashback {
 
 	ensure_player(name: string) {
 		if (this.current_match) {
-			if (this.current_match.players[name] == undefined) {
-				this.current_match.players[name] = {
-					username: name,
-					team: Team.BLUE,
-					deaths: 0,
-					scores: 0,
-					kills: 0,
-					voids: 0,
-				};
-			}
+			this.current_match.players[name] ??= {
+				username: name,
+				team: Team.BLUE,
+				deaths: 0,
+				scores: 0,
+				kills: 0,
+				voids: 0,
+			};
 		}
 	}
 
@@ -357,86 +336,6 @@ export default class Flashback {
 		this.current_match = null;
 	}
 
-	async get_chunk(index: number) {
-		const cache_id = Math.floor(index / CHUNK_CACHE_SIZE);
-		const cache = await this.get_cache(cache_id);
-
-		const index_in_cache = index - cache_id * CHUNK_CACHE_SIZE;
-
-		if (cache.packets[index_in_cache] == undefined) {
-			throw new Error("Missing chunk " + index);
-		}
-
-		console.log(cache.packets[index_in_cache]);
-	}
-
-	async get_cache(cache_id: number): Promise<ChunkCache> {
-		const cache = this.chunk_cache[cache_id];
-		if (cache == undefined) {
-			console.log("Cache miss on " + cache_id.toString());
-			if (this.zip == null) throw new Error("Zip file missing");
-			const file = await this.zip.file("level_chunk_caches/" + cache_id.toString());
-			if (file == null) {
-				throw new Error("Chunk cache file missing.");
-			}
-			const raw = new Uint8Array(await file.async("arraybuffer"));
-			const reader = new ByteReader(raw);
-			const packets: Chunk[] = [];
-
-			while (true) {
-				if (!reader.has(4)) {
-					break;
-				}
-
-				const size = reader.read_int();
-				console.log(size);
-
-				reader.position -= 4;
-
-				const chunk = new ByteReader(reader.take(size + 4));
-
-				chunk.read_int();
-
-				chunk.read_varint();
-
-				const chunk_res = {
-					x: chunk.read_int(),
-					y: chunk.read_int(),
-				};
-
-				const len = chunk.read_varint();
-
-				for (let i = 0; i < len; i++) {
-					const type = chunk.read_varint();
-					const length = chunk.read_varint();
-
-					for (let j = 0; j < length; j++) {
-						const long = chunk.read_long();
-					}
-				}
-
-				const data_length = chunk.read_varint();
-
-				for (let i = 0; i < 24; i++) {
-					const block_count = chunk.read_short();
-					console.log(block_count, "blocks.");
-					chunk.read_block_data();
-					chunk.read_biome_data();
-				}
-
-				packets.push(chunk_res);
-			}
-
-			const res: ChunkCache = {
-				packets: packets,
-			};
-			this.chunk_cache[cache_id] = res;
-			return res;
-		} else {
-			return cache;
-		}
-	}
-
 	async findGames(input: Uint8Array): Promise<FullMatchInsertData[]> {
 		const zip = new JSZip();
 
@@ -451,8 +350,10 @@ export default class Flashback {
 		}
 
 		try {
-			this.metadata = JSON.parse(await metadata_file.async("string"));
-		} catch {}
+			this.metadata = JSON.parse(await metadata_file.async("string")) as FlashbackMetadata;
+		} catch {
+			this.metadata = null;
+		}
 
 		if (this.metadata == null) {
 			return [];
@@ -483,7 +384,7 @@ export default class Flashback {
 			const magic = reader.read_uint();
 			if (magic != CHUNK_MAGIC) {
 				throw new Error(
-					`Invalid chunk magic in ${chunk_name} got ${magic} expected ${CHUNK_MAGIC}`,
+					`Invalid chunk magic in ${chunk_name} got ${magic.toString()} expected ${CHUNK_MAGIC.toString()}`,
 				);
 			}
 
@@ -515,10 +416,6 @@ export default class Flashback {
 				const type_id = reader.read_varint();
 				const action_type = action_types[type_id];
 
-				if (action_type == undefined) {
-					throw new Error(`Invalid action type ${type_id}`);
-				}
-
 				const action_size = reader.read_int();
 				const data = reader.take(action_size);
 				actions.push({
@@ -533,10 +430,6 @@ export default class Flashback {
 			while (reader.position < reader.length) {
 				const type_id = reader.read_varint();
 				const action_type = action_types[type_id];
-
-				if (action_type == undefined) {
-					throw new Error(`Invalid action type ${type_id}`);
-				}
 
 				const action_size = reader.read_int();
 				const data = reader.take(action_size);

@@ -26,8 +26,10 @@
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
         "cookie": "^1.1.1",
+        "cross-env": "^10.1.0",
         "dotenv": "^17.3.1",
         "drizzle-orm": "^0.45.1",
+        "electrobun": "^1.15.1",
         "hono": "4.11.1",
         "jszip": "^3.10.1",
         "lucide-react": "^0.575.0",
@@ -38,8 +40,7 @@
         "tailwind-merge": "^3.5.0",
         "tailwindcss": "^4.2.0",
         "ts-trueskill": "^5.1.0",
-        "zod": "^4.3.6",
-        "electrobun": "^1.15.1"
+        "zod": "^4.3.6"
     },
     "devDependencies": {
         "@cloudflare/vite-plugin": "1.15.3",
@@ -68,7 +69,7 @@
         "check": "wrangler types && tsc && vite build && wrangler deploy --dry-run",
         "deploy": "wrangler deploy --env production",
         "dev": "vite",
-        "lint": "eslint .",
+        "lint": "cross-env NODE_OPTIONS=\"--max-old-space-size=4096\" eslint . --cache",
         "preview": "npm run build && vite preview",
         "migrate": "drizzle-kit generate && wrangler d1 migrations apply bridge --local",
         "native": "electrobun dev"

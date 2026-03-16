@@ -28,26 +28,21 @@ import {
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/lib/use-mobile";
 import { CalculateElos, EloInformation } from "@/lib/stats";
-import { Team } from "@/worker/types";
+import { OptionalPlayerInformation, PlayerPerformance, SortMode, Team } from "@/worker/types";
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 
 export const Route = createFileRoute("/player/$username")({
 	component: User,
 });
 
-export enum SortMode {
-	NewToOld = "new_to_old",
-	OldToNew = "old_to_new",
-}
-
-export type FilterState = {
+export interface FilterState {
 	filterTeamCount: boolean;
 	yourTeamCount: number;
 	theirTeamCount: number;
-};
+}
 
 function User() {
 	const { username } = Route.useParams();
@@ -64,39 +59,46 @@ function User() {
 	const matches = data?.matches ?? null;
 	const players = data?.players ?? [];
 
-	const player = usePlayerInfo(username);
-	``;
-	if (matches && player?.exists) {
-		player.performances = [];
-		for (const match of Object.values(matches)) {
-			const perf = [...match.blue_players, ...match.red_players].find(
-				(p) => p.user == player.id,
-			);
-			if (perf != undefined) player.performances.push(perf);
-		}
-	}
+	const user = usePlayerInfo(username);
 
-	console.log(players);
+	const player: OptionalPlayerInformation | null = user;
+
+	const [performances, setPerformances] = useState<PlayerPerformance[]>([]);
+
+	if (player?.exists) {
+		player.performances = performances;
+	}
 
 	const [elos, setElos] = useState<EloInformation | null>(null);
 
 	const [loading, setLoading] = useState<boolean>(false);
 
-	useEffect(() => {
-		if (player != null && matches != null && player.exists && loading) {
-			setLoading(false);
+	const [calced, setCalced] = useState<string | null>(null);
+
+	useMemo(() => {
+		if (matches && player && player.exists) {
+			player.performances = [];
+			for (const match of Object.values(matches)) {
+				const perf = [...match.blue_players, ...match.red_players].find(
+					(p) => p.user == player.id,
+				);
+				if (perf != undefined) player.performances.push(perf);
+			}
+
+			setPerformances(player.performances);
 		}
-		console.log(player, matches);
-		if (player != null && player.exists && matches != null) {
+
+		if (player && player.exists && calced != player.id && matches) {
+			setCalced(player.id);
 			let total_kills = 0;
 			let total_deaths = 0;
 
 			let total_goals = 0;
 
-			for (let i = 0; i < player.performances.length; i++) {
-				total_kills += player.performances[i].kills;
-				total_deaths += player.performances[i].deaths;
-				total_goals += player.performances[i].scores;
+			for (const performance of player.performances) {
+				total_kills += performance.kills;
+				total_deaths += performance.deaths;
+				total_goals += performance.scores;
 			}
 			setKDR(total_kills / total_deaths);
 			setGoalsPerGame(total_goals / player.performances.length);
@@ -138,15 +140,16 @@ function User() {
 			setWinCount(win_count);
 			setLossCount(loss_count);
 		}
-	}, [player, matches, username]);
+	}, [matches, player, calced]);
 
-	useEffect(() => {
-		if (matches != null && players.length > 0) {
-			const elo = CalculateElos(players, Object.values(matches));
+	if (player != null && matches != null && player.exists && loading) {
+		setLoading(false);
+	}
 
-			setElos(elo);
-		}
-	}, [data, username]);
+	if (matches != null && players.length > 0 && elos == null) {
+		const elo = CalculateElos(players, Object.values(matches));
+		setElos(elo);
+	}
 
 	const [sortMode, setSortMode] = useState<SortMode>(SortMode.NewToOld);
 	const [filterState, setFilterState] = useState<FilterState>({
@@ -389,7 +392,7 @@ function User() {
 					<div>{username}</div>
 					<Button
 						onClick={() => {
-							router.navigate({
+							void router.navigate({
 								to: "/",
 							});
 						}}

@@ -20,7 +20,7 @@ import { authQuery } from "../queries";
 export default function AccountIntroDialog() {
 	const auth = useAuth();
 	const [loading, setLoading] = useState<boolean>(false);
-	let show_dialog =
+	const show_dialog =
 		auth.exists && auth.uuid == null && auth.awaiting_link_request == 0 && !loading;
 
 	const usernameInputRef = useRef<HTMLInputElement>(null);
@@ -46,33 +46,35 @@ export default function AccountIntroDialog() {
 						<Input ref={usernameInputRef} id="username" type="text" />
 						<Button
 							variant={"secondary"}
-							onClick={async () => {
-								setMcProfile(null);
-								const value = usernameInputRef.current?.value;
-								if (value == undefined) {
-									setError("Invalid username");
-									return;
-								}
+							onClick={() => {
+								void (async () => {
+									setMcProfile(null);
+									const value = usernameInputRef.current?.value;
+									if (value == undefined) {
+										setError("Invalid username");
+										return;
+									}
 
-								const res = await fetch(
-									"/api/profile/name/" + encodeURIComponent(value),
-								);
+									const res = await fetch(
+										"/api/profile/name/" + encodeURIComponent(value),
+									);
 
-								if (res.status == 404) {
-									setError('User not found "' + value + '"');
-									return;
-								}
+									if (res.status == 404) {
+										setError('User not found "' + value + '"');
+										return;
+									}
 
-								if (!res.ok) {
-									setError("Unknown error " + res.status.toString());
-								}
+									if (!res.ok) {
+										setError("Unknown error " + res.status.toString());
+									}
 
-								const data: MCProfileInfo =
-									await (res.json() as Promise<MCProfileInfo>);
+									const data: MCProfileInfo =
+										await (res.json() as Promise<MCProfileInfo>);
 
-								setMcProfile(data);
+									setMcProfile(data);
 
-								setError(null);
+									setError(null);
+								})();
 							}}
 						>
 							Search
@@ -110,15 +112,17 @@ export default function AccountIntroDialog() {
 								<Button
 									type="button"
 									disabled={!show_dialog}
-									onClick={async () => {
-										setLoading(true);
+									onClick={() => {
+										void (async () => {
+											setLoading(true);
 
-										await fetch("/api/link/request/" + mcprofile.uuid, {
-											credentials: "include",
-											method: "POST",
-										});
-										await queryClient.refetchQueries(authQuery);
-										setLoading(false);
+											await fetch("/api/link/request/" + mcprofile.uuid, {
+												credentials: "include",
+												method: "POST",
+											});
+											await queryClient.refetchQueries(authQuery);
+											setLoading(false);
+										})();
 									}}
 								>
 									Submit

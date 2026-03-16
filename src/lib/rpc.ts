@@ -1,7 +1,7 @@
 import { RPCSchema } from "electrobun/view";
 
-export type NativeRPCType = {
-	bun: RPCSchema<{}>;
+export interface NativeRPCType {
+	bun: RPCSchema<object>;
 	webview: RPCSchema<{
 		requests: {
 			onReplayAdded: {
@@ -13,4 +13,4 @@ export type NativeRPCType = {
 			};
 		};
 	}>;
-};
+}

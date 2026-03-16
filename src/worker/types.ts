@@ -12,21 +12,26 @@ export type Match = InferSelectModel<typeof matches> & {
 	blue_players: PlayerPerformance[];
 };
 
-export type MatchPlayerInsertData = {
+export enum SortMode {
+	NewToOld = "new_to_old",
+	OldToNew = "old_to_new",
+}
+
+export interface MatchPlayerInsertData {
 	username: string;
 	team: Team;
 	deaths: number;
 	scores: number;
 	kills: number;
 	voids: number;
-};
-export type FullMatchInsertData = {
+}
+export interface FullMatchInsertData {
 	date: number;
 	duration: number;
 	map: string;
 	red_players: MatchPlayerInsertData[];
 	blue_players: MatchPlayerInsertData[];
-};
+}
 
 export type PlayerPerformanceInsertData = InferInsertModel<typeof user_performances>;
 
@@ -38,13 +43,13 @@ export type PlayerInformation = UserProfile &
 		uuid: string;
 	};
 
-export type LinkRequestInfo = {
+export interface LinkRequestInfo {
 	user: UserInformation;
 	target: {
 		uuid: string;
 		username: string;
 	};
-};
+}
 
 export type UserList = Record<string, UserInformation>;
 

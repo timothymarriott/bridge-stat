@@ -1,17 +1,17 @@
 import { Match, OptionalPlayerInformation } from "@/worker/types";
 import { rate, Rating } from "ts-trueskill";
 
-export type MatchEloInformation = {
+export interface MatchEloInformation {
 	match: Match;
 	deltas: Record<string, number>;
 	totals: Record<string, Rating>;
-};
+}
 
-export type EloInformation = {
-	counts: Record<string, number>;
+export interface EloInformation {
+	counts: Record<string, number | undefined>;
 	finalScores: Record<string, Rating>;
 	matches: Record<string, MatchEloInformation>;
-};
+}
 
 export function GetELO(score: Rating) {
 	return score.mu * 100 - 1000;
@@ -37,12 +37,7 @@ export function CalculateElos(
 				return null;
 			}
 			const v = ratings[p.user];
-			if (v == undefined) {
-				return null;
-			}
-			if (counts[p.user] == undefined) {
-				counts[p.user] = 0;
-			}
+			counts[p.user] ??= 0;
 			counts[p.user] = counts[p.user] + 1;
 			return v;
 		});
@@ -52,12 +47,7 @@ export function CalculateElos(
 				return null;
 			}
 			const v = ratings[p.user];
-			if (v == undefined) {
-				return null;
-			}
-			if (counts[p.user] == undefined) {
-				counts[p.user] = 0;
-			}
+			counts[p.user] ??= 0;
 			counts[p.user] = counts[p.user] + 1;
 			return v;
 		});
@@ -87,19 +77,19 @@ export function CalculateElos(
 		};
 
 		match.red_players.forEach((p, i) => {
-			const old = ratings[p.user ?? ""];
-			if (old == undefined) return;
-			deltas[match.id].deltas[p.user!] = GetELO(newRed[i]) - GetELO(old);
-			deltas[match.id].totals[p.user!] = newRed[i];
-			ratings[p.user!] = newRed[i];
+			if (p.user == null) return;
+			const old = ratings[p.user];
+			deltas[match.id].deltas[p.user] = GetELO(newRed[i]) - GetELO(old);
+			deltas[match.id].totals[p.user] = newRed[i];
+			ratings[p.user] = newRed[i];
 		});
 
 		match.blue_players.forEach((p, i) => {
-			const old = ratings[p.user ?? ""];
-			if (old == undefined) return;
-			deltas[match.id].deltas[p.user!] = GetELO(newBlue[i]) - GetELO(old);
-			deltas[match.id].totals[p.user!] = newBlue[i];
-			ratings[p.user!] = newBlue[i];
+			if (p.user == null) return;
+			const old = ratings[p.user];
+			deltas[match.id].deltas[p.user] = GetELO(newBlue[i]) - GetELO(old);
+			deltas[match.id].totals[p.user] = newBlue[i];
+			ratings[p.user] = newBlue[i];
 		});
 	}
 

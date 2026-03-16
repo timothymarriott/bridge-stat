@@ -12,7 +12,7 @@ export const auth = new Hono<{
 	};
 }>()
 	.use("*", RequireAuthInformation)
-	.get<"/", {}, TypedResponse<OptionalUserInformation>>("/", async (c) => {
+	.get<"/", object, TypedResponse<OptionalUserInformation>>("/", async (c) => {
 		const user = c.get("user");
 
 		if (!user)
@@ -24,17 +24,13 @@ export const auth = new Hono<{
 			);
 
 		let res = await GetUserProfileById(user.id);
-		if (res == undefined) {
-			res = await CreateUserProfile(user.id);
-		}
+		res ??= await CreateUserProfile(user.id);
 
 		if (res.uuid != null && res.username == null) {
-			console.log("Fetching username " + new Date().toISOString());
 			const data = await FetchMojangProfile(res.uuid);
 			res.username = data.username;
 			await UpdateProfileUsername(user.id, res.username);
 		}
-		console.log("done " + new Date().toISOString());
 
 		const result: OptionalUserInformation = {
 			...res,

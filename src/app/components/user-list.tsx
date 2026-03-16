@@ -1,4 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { UserInformation, UserProfile } from "@/worker/types";
 import { ColumnDef, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
@@ -17,9 +16,10 @@ import { Button } from "@/components/ui/button";
 import { Link2OffIcon, TrashIcon } from "lucide-react";
 import { queryClient } from "../router";
 import { proxy } from "@/lib/utils";
+import { useQueryData } from "../auth-hooks";
 
 export default function UserList() {
-	const users = useQuery(adminUsersQuery);
+	const users = useQueryData(adminUsersQuery, []);
 
 	const columns: ColumnDef<UserInformation>[] = [
 		{
@@ -64,22 +64,23 @@ export default function UserList() {
 		{
 			header: "Action",
 			cell: ({ row }) => {
-				const me = (users.data ?? [])[row.index];
-				if (me == undefined) return <></>;
+				const me = users[row.index];
 				return (
 					<div className="flex-1 gap-2 flex flex-row w-full size-10 items-center">
 						{me.uuid != null ? (
 							<Button
-								onClick={async () => {
-									await fetch("/api/admin/link/unlink/" + me.id, {
-										credentials: "include",
-										method: "POST",
-									});
-									await users.refetch();
-									await Promise.all([
-										queryClient.refetchQueries(adminLinkRequestsQuery),
-										queryClient.refetchQueries(authQuery),
-									]);
+								onClick={() => {
+									void (async () => {
+										await fetch("/api/admin/link/unlink/" + me.id, {
+											credentials: "include",
+											method: "POST",
+										});
+										await Promise.all([
+											queryClient.refetchQueries(adminUsersQuery),
+											queryClient.refetchQueries(adminLinkRequestsQuery),
+											queryClient.refetchQueries(authQuery),
+										]);
+									})();
 								}}
 								variant={"destructive"}
 							>
@@ -87,16 +88,18 @@ export default function UserList() {
 							</Button>
 						) : (
 							<Button
-								onClick={async () => {
-									await fetch("/api/admin/link/unlink/" + me.id, {
-										credentials: "include",
-										method: "POST",
-									});
-									await users.refetch();
-									await Promise.all([
-										queryClient.refetchQueries(adminLinkRequestsQuery),
-										queryClient.refetchQueries(authQuery),
-									]);
+								onClick={() => {
+									void (async () => {
+										await fetch("/api/admin/link/unlink/" + me.id, {
+											credentials: "include",
+											method: "POST",
+										});
+										await Promise.all([
+											queryClient.refetchQueries(adminUsersQuery),
+											queryClient.refetchQueries(adminLinkRequestsQuery),
+											queryClient.refetchQueries(authQuery),
+										]);
+									})();
 								}}
 								variant={"destructive"}
 							>
@@ -110,7 +113,7 @@ export default function UserList() {
 	];
 
 	const table = useReactTable({
-		data: users.data ?? [],
+		data: users,
 		columns: columns,
 		getCoreRowModel: getCoreRowModel(),
 	});
@@ -141,7 +144,7 @@ export default function UserList() {
 						))}
 					</TableHeader>
 					<TableBody>
-						{table.getRowModel().rows?.length ? (
+						{table.getRowModel().rows.length ? (
 							table.getRowModel().rows.map((row) => (
 								<TableRow
 									key={row.id}

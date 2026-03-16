@@ -5,17 +5,8 @@ import { env } from "cloudflare:workers";
 import { auth } from "./auth";
 import { FetchMojangProfile, FetchMojangProfileFromName } from "../mojang";
 import player from "./player";
-import {
-	AddLinkRequest,
-	GetMatches,
-	GetPlayerInformationByUser,
-	GetUserProfileById,
-	GetUsers,
-} from "../requests";
-import { Match, MatchInsertData, MCProfileInfo, PlayerPerformanceInsertData, Team } from "../types";
-import { db } from "../database";
-import { matches, user_performances } from "../schema";
-import { MAP_NAMES } from "../../lib/data";
+import { AddLinkRequest, GetMatches, GetUserProfileById } from "../requests";
+import { Match, MCProfileInfo } from "../types";
 import { RequireAuthInformation } from "..";
 import { better_auth } from "../better_auth";
 
@@ -36,7 +27,11 @@ export const api = new Hono<{
 
 		const res = await GetUserProfileById(user.id);
 
-		if (res!.awaiting_link_request > 0) {
+		if (!res) {
+			return c.body(null, 404);
+		}
+
+		if (res.awaiting_link_request > 0) {
 			return c.body(null, 401);
 		}
 
@@ -55,14 +50,14 @@ export const api = new Hono<{
 			credentials: true,
 		}),
 	)
-	.get<"/profile/uuid/:uuid", {}, TypedResponse<MCProfileInfo | null>>(
+	.get<"/profile/uuid/:uuid", object, TypedResponse<MCProfileInfo | null>>(
 		"/profile/uuid/:uuid",
 		async (c) => {
 			const { uuid } = c.req.param();
 			return c.json<MCProfileInfo>(await FetchMojangProfile(uuid));
 		},
 	)
-	.get<"/profile/name/:name", {}, TypedResponse<MCProfileInfo | null>>(
+	.get<"/profile/name/:name", object, TypedResponse<MCProfileInfo | null>>(
 		"/profile/name/:name",
 		async (c) => {
 			const { name } = c.req.param();
@@ -70,7 +65,7 @@ export const api = new Hono<{
 			return c.json<MCProfileInfo>(await FetchMojangProfileFromName(name));
 		},
 	)
-	.get<"/matches", {}, TypedResponse<Record<string, Match>>>("/matches", async (c) => {
+	.get<"/matches", object, TypedResponse<Record<string, Match>>>("/matches", async (c) => {
 		const matches = await GetMatches();
 
 		return c.json(matches);

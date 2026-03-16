@@ -3,16 +3,17 @@ import {
 	OptionalPlayerInformation,
 	PlayerInformation,
 	PlayerPerformance,
+	SortMode,
 	Team,
 } from "@/worker/types";
 import { useQueryData } from "../auth-hooks";
 import { playersQuery } from "../queries";
 import MinecraftAvatar from "./mc-avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/lib/use-mobile";
 import { CalculateElos, EloInformation } from "@/lib/stats";
-import { useEffect, useState } from "react";
-import { FilterState, SortMode } from "../routes/player/$username";
+import { useMemo, useState } from "react";
+import { FilterState } from "../routes/player/$username";
 import React from "react";
 import { MatchInfo } from "./match-info";
 
@@ -34,19 +35,20 @@ export default function PlayerPerformancesList({
 
 	const [elos, setElos] = useState<EloInformation | null>(null);
 
-	useEffect(() => {
-		if (matches != null && players.length > 0) {
-			const elo = CalculateElos(players, Object.values(matches));
+	if (matches != null && players.length > 0 && elos == null) {
+		const elo = CalculateElos(players, Object.values(matches));
 
-			setElos(elo);
+		setElos(elo);
+	}
 
+	useMemo(() => {
+		if (matches != null) {
 			setPerformances(
 				player.performances
 					.filter((a) => {
 						if (filterState.filterTeamCount) {
 							if (!a.match) return false;
 							const match = matches[a.match];
-							if (!match) return false;
 
 							const me_count =
 								a.team == Team.RED
@@ -69,45 +71,36 @@ export default function PlayerPerformancesList({
 						if (sortMode == SortMode.OldToNew) {
 							return a.id - b.id;
 						}
-						if (sortMode == SortMode.NewToOld) {
-							return b.id - a.id;
-						}
-						return 0;
+						return b.id - a.id;
 					}),
 			);
 		}
-	}, [matches, players, filterState, sortMode, player]);
+	}, [player, filterState, matches, sortMode]);
 
 	return (
-		<>
-			<div className="space-y-1">
-				{matches != null &&
-					elos != null &&
-					performances.length > 0 &&
-					performances.map((perf, i) => {
-						return (
-							<PerformanceDisplayComponent
-								key={i}
-								elos={elos}
-								matches={matches}
-								i={i}
-								perf={perf}
-								players={players}
-							/>
-						);
-					})}
+		<div className="space-y-1">
+			{matches != null &&
+				elos != null &&
+				performances.length > 0 &&
+				performances.map((perf, i) => {
+					return (
+						<PerformanceDisplay
+							key={i}
+							elos={elos}
+							matches={matches}
+							i={i}
+							perf={perf}
+							players={players}
+						/>
+					);
+				})}
 
-				{performances.length == 0 ? (
-					<span>No matches found with these filters.</span>
-				) : null}
-			</div>
-		</>
+			{performances.length == 0 ? <span>No matches found with these filters.</span> : null}
+		</div>
 	);
 }
 
-const PerformanceDisplayComponent = React.memo(PerformanceDisplay);
-
-function teamInfo({
+function TeamInfo({
 	team,
 	side,
 	match,
@@ -156,10 +149,10 @@ function teamInfo({
 					})
 					.map((p, i) => {
 						const player = players.find((_p) => {
-							if (!_p.exists || !_p) return false;
+							if (!_p.exists) return false;
 							return _p.id == p.user;
 						});
-						if (player == undefined || !player.exists) return null;
+						if (!player?.exists) return null;
 						return (
 							<MinecraftAvatar
 								key={i}
@@ -184,7 +177,7 @@ function teamInfo({
 	);
 }
 
-export const TeamInfo = React.memo(teamInfo);
+export const TeamInfoComponent = React.memo(TeamInfo);
 
 function PerformanceDisplay({
 	perf,
@@ -199,6 +192,7 @@ function PerformanceDisplay({
 	players: OptionalPlayerInformation[];
 	elos: EloInformation;
 }) {
+	const [hovered, setHovered] = useState<boolean>(false);
 	if (perf.match == null) return null;
 
 	const match = matches[perf.match];
@@ -214,13 +208,11 @@ function PerformanceDisplay({
 		}
 	}
 
-	let winner: Team = red_scores > blue_scores ? Team.RED : Team.BLUE;
-
-	const [hovered, setHovered] = useState<boolean>(false);
+	const winner: Team = red_scores > blue_scores ? Team.RED : Team.BLUE;
 
 	const player = players.find((p) => p.exists && p.id == perf.user);
 
-	if (!player || !player.exists) {
+	if (!player || !player.exists || !perf.user) {
 		return null;
 	}
 
@@ -234,7 +226,7 @@ function PerformanceDisplay({
 					}
 				>
 					{perf.team == Team.RED ? (
-						<TeamInfo
+						<TeamInfoComponent
 							match={match}
 							players={players}
 							team={Team.RED}
@@ -242,7 +234,7 @@ function PerformanceDisplay({
 							priority={player.id}
 						/>
 					) : (
-						<TeamInfo
+						<TeamInfoComponent
 							match={match}
 							players={players}
 							team={Team.BLUE}
@@ -284,23 +276,26 @@ function PerformanceDisplay({
 						</div>
 						{winner == perf.team ? (
 							<span
-								onMouseEnter={() => setHovered(true)}
-								onMouseLeave={() => setHovered(false)}
+								onMouseEnter={() => {
+									setHovered(true);
+								}}
+								onMouseLeave={() => {
+									setHovered(false);
+								}}
 								className="text-green-400"
 							>
 								{hovered ? (
 									<span
 										className={
-											Math.floor(elos.matches[match.id].deltas[perf.user!]) >
-											0
+											Math.floor(elos.matches[match.id].deltas[perf.user]) > 0
 												? "text-green-400"
 												: "text-red-400"
 										}
 									>
-										{Math.floor(elos.matches[match.id].deltas[perf.user!]) > 0
+										{Math.floor(elos.matches[match.id].deltas[perf.user]) > 0
 											? "+"
 											: ""}
-										{Math.floor(elos.matches[match.id].deltas[perf.user!])}
+										{Math.floor(elos.matches[match.id].deltas[perf.user])}
 									</span>
 								) : (
 									"Won"
@@ -308,23 +303,26 @@ function PerformanceDisplay({
 							</span>
 						) : (
 							<span
-								onMouseEnter={() => setHovered(true)}
-								onMouseLeave={() => setHovered(false)}
+								onMouseEnter={() => {
+									setHovered(true);
+								}}
+								onMouseLeave={() => {
+									setHovered(false);
+								}}
 								className="text-red-400"
 							>
 								{hovered ? (
 									<span
 										className={
-											Math.floor(elos.matches[match.id].deltas[perf.user!]) >
-											0
+											Math.floor(elos.matches[match.id].deltas[perf.user]) > 0
 												? "text-green-400"
 												: "text-red-400"
 										}
 									>
-										{Math.floor(elos.matches[match.id].deltas[perf.user!]) > 0
+										{Math.floor(elos.matches[match.id].deltas[perf.user]) > 0
 											? "+"
 											: ""}
-										{Math.floor(elos.matches[match.id].deltas[perf.user!])}
+										{Math.floor(elos.matches[match.id].deltas[perf.user])}
 									</span>
 								) : (
 									"Lost"
@@ -333,7 +331,7 @@ function PerformanceDisplay({
 						)}
 					</div>
 					{perf.team == Team.RED ? (
-						<TeamInfo
+						<TeamInfoComponent
 							match={match}
 							players={players}
 							team={Team.BLUE}
@@ -341,7 +339,7 @@ function PerformanceDisplay({
 							priority={player.id}
 						/>
 					) : (
-						<TeamInfo
+						<TeamInfoComponent
 							match={match}
 							players={players}
 							team={Team.RED}
@@ -351,7 +349,12 @@ function PerformanceDisplay({
 					)}
 				</div>
 			</PopoverTrigger>
-			<PopoverContent onOpenAutoFocus={(e) => e.preventDefault()} className="w-max">
+			<PopoverContent
+				onOpenAutoFocus={(e) => {
+					e.preventDefault();
+				}}
+				className="w-max"
+			>
 				<MatchInfo
 					players={players}
 					match={match}

@@ -14,7 +14,7 @@ export const NbtType: Record<number, keyof NbtTypeNames> = {
 	12: "long_array",
 };
 
-export type NbtTypeNames = {
+export interface NbtTypeNames {
 	end: 0;
 	byte: 1;
 	short: 2;
@@ -28,7 +28,7 @@ export type NbtTypeNames = {
 	compound: 10;
 	int_array: 11;
 	long_array: 12;
-};
+}
 
 type NbtPrimitive =
 	| { type: "end"; value: undefined }
@@ -53,34 +53,9 @@ interface NbtList {
 	value: NbtTag[];
 }
 
-type NbtUnwrapped =
-	| number
-	| bigint
-	| string
-	| number[]
-	| bigint[]
-	| NbtUnwrapped[]
-	| { [key: string]: NbtUnwrapped };
+type NbtUnwrapped = number | bigint | string | NbtUnwrapped[] | { [key: string]: NbtUnwrapped };
 
 type NbtTag = NbtPrimitive | NbtCompound | NbtList;
-
-function splitBigIntEntries(value: bigint, bitsPerEntry: number, entryCount: number): number[] {
-	if (bitsPerEntry <= 0) {
-		throw new Error("bitsPerEntry must be > 0");
-	}
-
-	const mask = (1n << BigInt(bitsPerEntry)) - 1n;
-	const result = new Array<number>(entryCount);
-
-	let v = value;
-
-	for (let i = 0; i < entryCount; i++) {
-		result[i] = Number(v & mask);
-		v >>= BigInt(bitsPerEntry);
-	}
-
-	return result;
-}
 
 function unwrapNbt(tag: NbtTag): NbtUnwrapped {
 	switch (tag.type) {
@@ -244,7 +219,7 @@ export class ByteReader {
 		let value = 0;
 		let position = 0;
 
-		while (true) {
+		for (;;) {
 			const current = this.read_byte();
 			value |= (current & ByteReader.SEGMENT_BITS) << position;
 
@@ -268,7 +243,7 @@ export class ByteReader {
 		let value = 0n;
 		let position = 0n;
 
-		while (true) {
+		for (;;) {
 			const current = BigInt(this.read_byte());
 			value |= (current & 0x7fn) << position;
 
@@ -366,16 +341,13 @@ export class ByteReader {
 		return [x, y, z];
 	}
 
-	read_nbt<T>(): T {
+	read_nbt(): unknown {
 		const item_type = this.read_byte();
 		const item_type_name = NbtType[item_type];
-		if (item_type_name == undefined) {
-			throw new Error("Invalid root type.");
-		}
 
 		const nbt = this.read_nbt_tag(item_type_name);
 
-		return unwrapNbt(nbt) as T;
+		return unwrapNbt(nbt) as unknown;
 	}
 
 	read_nbt_tag(type: keyof NbtTypeNames): NbtTag {
@@ -406,9 +378,7 @@ export class ByteReader {
 		} else if (type == "list") {
 			const item_type = this.read_byte();
 			const item_type_name = NbtType[item_type];
-			if (item_type_name == undefined) {
-				throw new Error("Invalid list type.");
-			}
+
 			const len = this.read_int();
 
 			if (item_type <= 0) {
@@ -428,14 +398,11 @@ export class ByteReader {
 				value: {},
 			};
 
-			while (true) {
+			for (;;) {
 				const item_type = this.read_byte();
 				const item_type_name = NbtType[item_type];
 				if (item_type == 0) {
 					break;
-				}
-				if (item_type_name == undefined) {
-					throw new Error("Invalid compound item type.");
 				}
 
 				const name_len = this.read_ushort();
@@ -452,107 +419,13 @@ export class ByteReader {
 				res.push(this.read_int());
 			}
 			return { type, value: res };
-		} else if (type == "long_array") {
+		} else {
 			const len = this.read_int();
 			const res: bigint[] = [];
 			for (let i = 0; i < len; i++) {
 				res.push(this.read_long());
 			}
 			return { type, value: res };
-		} else {
-			throw new Error("Unsupported nbt type " + type);
 		}
-	}
-
-	read_block_data() {
-		console.log("Starting to read blocks.", this.pos.toString(16), this.peek(8));
-
-		const entry_count = 4096;
-
-		const bpe = Math.min(this.read_u8(), 15);
-
-		console.log(bpe, "bpe");
-
-		if (bpe == 0) {
-			const val = this.read_varint();
-			console.log("Single value block data:", val);
-			return Array(entry_count).fill(val);
-		}
-		const res: number[] = Array(entry_count).fill(-1);
-
-		const entries_per_long = Math.floor(64 / bpe);
-		console.log(entries_per_long, "epl");
-		const number_of_longs = Math.ceil(entry_count / entries_per_long);
-
-		console.log(number_of_longs, "longs");
-
-		if (!this.has(number_of_longs)) {
-			console.error("Not enough longs");
-		}
-
-		const pallete: number[] = [];
-		if (bpe <= 8) {
-			console.log("Indirect");
-			const length = this.read_varint();
-			for (let i = 0; i < length; i++) {
-				pallete.push(this.read_varint());
-			}
-			console.log(pallete);
-		}
-
-		for (let i = 0; i < number_of_longs; i++) {
-			const entries = splitBigIntEntries(this.read_long(), bpe, entries_per_long);
-			for (let j = 0; j < entries.length; j++) {
-				const index = i * entries_per_long + j;
-				if (index >= entry_count) break;
-				res[index] = pallete.length > 0 ? pallete[entries[j]] : entries[j];
-			}
-		}
-
-		console.log(res);
-
-		console.log("Read blocks");
-	}
-
-	read_biome_data() {
-		console.log("Starting to read biomes");
-		const entry_count = 64;
-
-		const bpe = Math.min(this.read_u8(), 15);
-
-		if (bpe == 0) {
-			const val = this.read_varint();
-			console.log("Single value biome data:", val);
-			return Array(entry_count).fill(val);
-		}
-
-		const res: number[] = [];
-
-		const entries_per_long = Math.floor(64 / bpe);
-		const number_of_longs = Math.ceil(entry_count / entries_per_long);
-
-		if (!this.has(number_of_longs)) {
-			console.error("Not enough longs");
-		}
-
-		const pallete: number[] = [];
-		if (bpe <= 3) {
-			console.log("Indirect");
-			const length = this.read_varint();
-			for (let i = 0; i < length; i++) {
-				pallete.push(this.read_varint());
-			}
-			console.log(pallete);
-		}
-
-		for (let i = 0; i < number_of_longs; i++) {
-			const entries = splitBigIntEntries(this.read_long(), bpe, entries_per_long);
-			for (let j = 0; j < entries.length; j++) {
-				res.push(pallete.length > 0 ? pallete[entries[j]] : entries[j]);
-			}
-		}
-
-		console.log(res);
-		console.log("Read biomes");
 	}
 }

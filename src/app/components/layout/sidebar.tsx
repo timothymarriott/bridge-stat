@@ -16,22 +16,22 @@ import { useQueryData } from "@/app/auth-hooks";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { CalculateElos, EloInformation, GetELO } from "@/lib/stats";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export function LayoutSidebar() {
 	const data = useQueryData(playersQuery, {
 		players: [],
-		matches: {},
+		matches: null,
 	});
-	const player_list = data.players;
+	const player_list = data.players.length == 0 ? null : data.players;
 	const matches = data.matches;
 
 	const [elos, setElos] = useState<EloInformation | null>(null);
 
-	useEffect(() => {
-		if (player_list != null && matches != null)
-			setElos(CalculateElos(player_list, Object.values(matches)));
-	}, [matches, player_list]);
+	if (player_list != null && matches != null && elos == null) {
+		const vs = CalculateElos(player_list, Object.values(matches));
+		setElos(vs);
+	}
 
 	return (
 		<Sidebar collapsible="icon" variant="floating">
@@ -43,10 +43,8 @@ export function LayoutSidebar() {
 							.sort((a, b) => {
 								if (!a.exists || !b.exists) return 0;
 								if (elos == null) return 0;
-								if (elos.finalScores[b.id] == undefined) return -1;
-								if (elos.finalScores[a.id] == undefined) return 1;
-								if (elos.counts[a.id] == undefined) return 1;
-								if (elos.counts[b.id] == undefined) return -1;
+								if (elos.counts[a.id] == undefined) return Infinity;
+								if (elos.counts[b.id] == undefined) return -Infinity;
 								return elos.finalScores[b.id].mu - elos.finalScores[a.id].mu;
 							})
 							.map((player) => {
@@ -55,11 +53,11 @@ export function LayoutSidebar() {
 									<SidebarMenuButton
 										key={player.id}
 										disabled={
-											elos == null || elos.counts[player.id] == undefined
+											elos ? elos.counts[player.id] == undefined : false
 										}
 										onClick={() => {
-											router.navigate({
-												to: "/player/" + player.username,
+											void router.navigate({
+												to: "/player/" + (player.username ?? ""),
 											});
 										}}
 										className="font-bold"
@@ -67,9 +65,7 @@ export function LayoutSidebar() {
 										<MinecraftAvatar size="size-6" uuid={player.uuid} />
 										<div className="w-full justify-between flex flex-row">
 											<span>{player.username}</span>
-											{elos != null &&
-											elos.counts[player.id] != undefined &&
-											elos.finalScores[player.id] != undefined ? (
+											{elos?.finalScores[player.id] != undefined ? (
 												<span className="text-accent-foreground">
 													{Math.floor(
 														GetELO(elos.finalScores[player.id]),
@@ -93,7 +89,7 @@ export function LayoutSidebar() {
 			<SidebarFooter>
 				<SidebarMenuButton
 					onClick={() => {
-						router.navigate({
+						void router.navigate({
 							to: "/",
 						});
 					}}

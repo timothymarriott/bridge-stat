@@ -1,4 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { LinkRequestInfo, UserInformation } from "@/worker/types";
 import { ColumnDef, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
@@ -16,9 +15,10 @@ import { Button } from "@/components/ui/button";
 import { adminLinkRequestsQuery, adminUsersQuery, api_client, authQuery } from "../queries";
 import { queryClient } from "../router";
 import { proxy } from "@/lib/utils";
+import { useQueryData } from "../auth-hooks";
 
 export default function LinkRequestList() {
-	const link_requests = useQuery(adminLinkRequestsQuery);
+	const link_requests = useQueryData(adminLinkRequestsQuery, []);
 
 	const columns: ColumnDef<LinkRequestInfo>[] = [
 		{
@@ -60,34 +60,41 @@ export default function LinkRequestList() {
 		{
 			header: "Action",
 			cell: ({ row }) => {
-				const me = (link_requests.data ?? [])[row.index];
-				if (me == undefined) return <></>;
+				const me = link_requests[row.index];
 				return (
 					<div className="flex-1 gap-2 flex flex-row w-full size-10 items-center">
 						<Button
-							onClick={async () => {
-								await api_client.api.admin.link.accept[":id"].$post({
-									param: {
-										id: me.user.id,
-									},
-								});
-								await link_requests.refetch();
-								await queryClient.refetchQueries(adminUsersQuery);
-								await queryClient.refetchQueries(authQuery);
+							onClick={() => {
+								void (async () => {
+									await api_client.api.admin.link.accept[":id"].$post({
+										param: {
+											id: me.user.id,
+										},
+									});
+									await Promise.all([
+										queryClient.refetchQueries(adminUsersQuery),
+										queryClient.refetchQueries(adminLinkRequestsQuery),
+										queryClient.refetchQueries(authQuery),
+									]);
+								})();
 							}}
 						>
 							Accept
 						</Button>
 						<Button
-							onClick={async () => {
-								await api_client.api.admin.link.deny[":id"].$post({
-									param: {
-										id: me.user.id,
-									},
-								});
-								await link_requests.refetch();
-								await queryClient.refetchQueries(adminUsersQuery);
-								await queryClient.refetchQueries(authQuery);
+							onClick={() => {
+								void (async () => {
+									await api_client.api.admin.link.deny[":id"].$post({
+										param: {
+											id: me.user.id,
+										},
+									});
+									await Promise.all([
+										queryClient.refetchQueries(adminUsersQuery),
+										queryClient.refetchQueries(adminLinkRequestsQuery),
+										queryClient.refetchQueries(authQuery),
+									]);
+								})();
 							}}
 							variant={"destructive"}
 						>
@@ -100,7 +107,7 @@ export default function LinkRequestList() {
 	];
 
 	const table = useReactTable({
-		data: link_requests.data ?? [],
+		data: link_requests,
 		columns: columns,
 		getCoreRowModel: getCoreRowModel(),
 	});
@@ -131,7 +138,7 @@ export default function LinkRequestList() {
 						))}
 					</TableHeader>
 					<TableBody>
-						{table.getRowModel().rows?.length ? (
+						{table.getRowModel().rows.length ? (
 							table.getRowModel().rows.map((row) => (
 								<TableRow
 									key={row.id}

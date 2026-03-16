@@ -1,11 +1,10 @@
 import type {
+	LinkRequestList,
 	Match,
 	OptionalPlayerInformation,
 	OptionalUserInformation,
-	UserInformation,
 	WorkerApp,
 } from "@/worker/types";
-import { createAuthClient } from "better-auth/react";
 import { hc } from "hono/client";
 import { createQuery } from "./auth-hooks";
 
@@ -44,7 +43,7 @@ export const adminUsersQuery = {
 		const res = await api_client.api.admin.users.$get();
 
 		if (!res.ok) return null;
-		return res.json() as Promise<UserInformation[]>;
+		return res.json();
 	},
 };
 
@@ -116,24 +115,9 @@ export const playersQuery = createQuery<{
 				}
 		}
 
-		console.log(data);
-
 		return { players: data, matches: matches };
 	},
 });
-
-export const betterAuthQuery = {
-	queryKey: ["betterAuth"],
-	queryFn: async () => {
-		const auth = createAuthClient({
-			baseURL: import.meta.env.PROD
-				? "https://bridge-stat.timothyrmarriott.workers.dev"
-				: "http://localhost:5173",
-		});
-
-		return auth;
-	},
-};
 
 export const adminLinkRequestsQuery = {
 	queryKey: ["adminLinkRequests"],
@@ -143,6 +127,6 @@ export const adminLinkRequestsQuery = {
 
 		if (!res.ok) return [];
 
-		return res.json();
+		return (await res.json()) as LinkRequestList;
 	},
 };

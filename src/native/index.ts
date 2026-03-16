@@ -25,24 +25,28 @@ const mainWindow = new BrowserWindow({
 
 mainWindow.setSize(1920, 1080);
 
-const SEARCH_DIR = "E:\\Apps\\PrismLauncher\\instances\\MenOfTheMine\\.minecraft\\flashback\\replays";
+const SEARCH_DIR =
+	"E:\\Apps\\PrismLauncher\\instances\\MenOfTheMine\\.minecraft\\flashback\\replays";
 
-const watcher = watch(SEARCH_DIR, { recursive: true }, async (event, filename) => {
+const watcher = watch(SEARCH_DIR, { recursive: true }, (event, filename) => {
+	if (filename == null) return;
 	console.log(`Detected ${event} in ${SEARCH_DIR}/${filename}`);
 
 	if (event == "change") {
-		setTimeout(async () => {
-			const file = Bun.file(`${SEARCH_DIR}/${filename}`);
+		setTimeout(() => {
+			void (async () => {
+				const file = Bun.file(`${SEARCH_DIR}/${filename}`);
 
-			if (await file.exists()) {
-				const stat = await file.stat();
-				if (stat.isFile()) {
-					mainWindow.webview.rpc?.request.onReplayAdded({
-						data: new Uint8Array(await file.arrayBuffer()).toBase64(),
-						path: `${SEARCH_DIR}/${filename}`,
-					});
+				if (await file.exists()) {
+					const stat = await file.stat();
+					if (stat.isFile() && mainWindow.webview.rpc) {
+						await mainWindow.webview.rpc.request.onReplayAdded({
+							data: new Uint8Array(await file.arrayBuffer()).toBase64(),
+							path: `${SEARCH_DIR}/${filename}`,
+						});
+					}
 				}
-			}
+			})();
 		}, 100);
 	}
 });

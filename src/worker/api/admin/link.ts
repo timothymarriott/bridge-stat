@@ -4,7 +4,7 @@ import { link_requests, user, user_profiles } from "../../schema";
 import { eq } from "drizzle-orm";
 import { FetchMojangProfile } from "../../mojang";
 import { LinkRequestList } from "../../types";
-import { better_auth } from "../auth";
+import { better_auth } from "../../better_auth";
 
 export const link = new Hono<{
 	Variables: {
@@ -53,7 +53,7 @@ export const link = new Hono<{
 			.where(eq(user_profiles.id, id));
 		return c.body(null, 200);
 	})
-	.get<"/list", {}, TypedResponse<LinkRequestList>>("/list", async (c) => {
+	.get<"/list", object, TypedResponse<LinkRequestList>>("/list", async (c) => {
 		const result: LinkRequestList = [];
 		const raw = await db.select().from(link_requests);
 		await Promise.all(

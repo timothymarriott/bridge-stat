@@ -1,9 +1,4 @@
-import {
-	createRootRouteWithContext,
-	Outlet,
-	useRouter,
-	useRouterState,
-} from "@tanstack/react-router";
+import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
 import { QueryClient } from "@tanstack/react-query";
 import Layout from "../layout";
 import { Button } from "@/components/ui/button";
@@ -21,7 +16,7 @@ export const Route = createRootRouteWithContext<{
 				<div>{info.routeId}</div>
 				<Button
 					onClick={() => {
-						router.navigate({
+						void router.navigate({
 							to: "/",
 						});
 					}}
@@ -39,7 +34,7 @@ export const Route = createRootRouteWithContext<{
 					<div>{info.error.message}</div>
 					<Button
 						onClick={() => {
-							router.navigate({
+							void router.navigate({
 								to: "/",
 							});
 						}}

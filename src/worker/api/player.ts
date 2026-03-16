@@ -10,14 +10,14 @@ export const player = new Hono<{
 		session: typeof better_auth.$Infer.Session.session | null;
 	};
 }>()
-	.get<"/list", {}, TypedResponse<OptionalPlayerInformation[]>>("/list", async (c) => {
+	.get<"/list", object, TypedResponse<OptionalPlayerInformation[]>>("/list", async (c) => {
 		const users = await GetUsers();
 
-		const result = await Promise.all(users.map((usr) => GetPlayerInformationByUser(usr)));
+		const result = users.map((usr) => GetPlayerInformationByUser(usr));
 
 		return c.json<OptionalPlayerInformation[]>(result);
 	})
-	.get<"/info/:username", {}, TypedResponse<OptionalPlayerInformation>>(
+	.get<"/info/:username", object, TypedResponse<OptionalPlayerInformation>>(
 		"/info/:username",
 		async (c) => {
 			const { username } = c.req.param();
