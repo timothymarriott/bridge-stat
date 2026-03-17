@@ -90,6 +90,7 @@ export default function UploadMatchDialog({ children }: { children: ReactNode })
 																)
 																.replace("Jordano120", "Tetron_");
 														});
+
 														await fetch("/api/admin/upload", {
 															credentials: "include",
 															method: "POST",

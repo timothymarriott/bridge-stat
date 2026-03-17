@@ -153,6 +153,7 @@ export const PacketParsers: Record<string, PacketParser | undefined> = {
 					if (content.extra[0].text == " Winners:") {
 						flashback.reading_winners = true;
 					}
+					/*
 					if (content.extra[0].text == "Bridge Duel") {
 						flashback.start_match({
 							start_tick: flashback.tick,
@@ -161,7 +162,28 @@ export const PacketParsers: Record<string, PacketParser | undefined> = {
 							players: {},
 							winner: "Blue",
 						});
-					}
+					}*/
+				}
+
+				if (content.extra[0].text == "5") {
+					flashback.could_be_bridge = true;
+				}
+
+				if (content.extra[0].text == "Match started!") {
+					flashback.could_be_bridge = true;
+				}
+
+				if (content.extra[0].text == "Bridge" && flashback.could_be_bridge) {
+					flashback.could_be_bridge = false;
+					//console.log("Detected Party Split Game");
+					//000002bf-00000000-00005031-1f3262844d54bc350717a2fea393669c
+					flashback.start_match({
+						start_tick: flashback.tick,
+						end_tick: -1,
+						map: flashback.last_map,
+						players: {},
+						winner: "Blue",
+					});
 				}
 			}
 
@@ -211,13 +233,10 @@ export const PacketParsers: Record<string, PacketParser | undefined> = {
 			}
 
 			if (content.extra.length >= 4) {
-				if (
-					flashback.current_match &&
-					content.extra[2]?.text == " Map: " &&
-					content.extra[3]?.text &&
-					flashback.current_match.map == undefined
-				) {
-					flashback.current_match.map = content.extra[3].text;
+				if (content.extra[2]?.text == " Map: " && content.extra[3]?.text) {
+					if (flashback.current_match && flashback.current_match.map == undefined) {
+						flashback.current_match.map = content.extra[3].text;
+					}
 				}
 			}
 
@@ -290,6 +309,9 @@ export default class Flashback {
 
 	date = 0;
 
+	could_be_bridge = false;
+	last_map: string | undefined = undefined;
+
 	zip: JSZip | null = null;
 
 	constructor(date: number) {
@@ -356,6 +378,7 @@ export default class Flashback {
 		}
 
 		if (this.metadata == null) {
+			console.error("Could not read flashback metadata.");
 			return [];
 			//throw new Error("Couldnt read flashback metadata.");
 		}
