@@ -10,12 +10,12 @@ import { useQueryData } from "../auth-hooks";
 import { playersQuery } from "../queries";
 import MinecraftAvatar from "./mc-avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useIsMobile } from "@/lib/use-mobile";
 import { CalculateElos, EloInformation } from "@/lib/stats";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FilterState } from "../routes/player/$username";
 import React from "react";
 import { MatchInfo } from "./match-info";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function PlayerPerformancesList({
 	player,
@@ -41,8 +41,25 @@ export default function PlayerPerformancesList({
 		setElos(elo);
 	}
 
+	const STEP_COUNT = 5;
+
+	const [count, setCount] = useState(25);
+
+	useEffect(() => {
+		if (count >= performances.length) return;
+
+		const id = setTimeout(() => {
+			setCount((c) => c + STEP_COUNT);
+		}, 15);
+
+		return () => {
+			clearTimeout(id);
+		};
+	}, [count, performances.length]);
+
 	useMemo(() => {
 		if (matches != null) {
+			setCount(0);
 			setPerformances(
 				player.performances
 					.filter((a) => {
@@ -84,9 +101,20 @@ export default function PlayerPerformancesList({
 				performances.length > 0 &&
 				performances.map((perf, i) => {
 					if (perf.match == null) return null;
+
+					if (i >= count) {
+						return (
+							<Skeleton
+								style={{ width: 528, height: 28 }}
+								className="bg-muted-foreground/20"
+								key={perf.id}
+							/>
+						);
+					}
+
 					return (
 						<PerformanceDisplay
-							key={i}
+							key={perf.id}
 							elos={elos}
 							match={matches[perf.match]}
 							i={i}
@@ -115,7 +143,6 @@ function TeamInfo({
 	priority?: string;
 }) {
 	const performances = team == Team.RED ? match.red_players : match.blue_players;
-	const isMobile = useIsMobile();
 	return (
 		<div
 			className={
@@ -160,15 +187,13 @@ function TeamInfo({
 								size="size-5"
 								uuid={player.uuid}
 								tooltip={
-									isMobile ? undefined : (
-										<>
-											<span>{player.username ?? ""}</span> <br />
-											<span>Goals: {p.scores}</span> <br />
-											<span>Kills: {p.kills}</span> <br />
-											<span>Deaths: {p.deaths}</span> <br />
-											<span>Voids: {p.voids}</span>
-										</>
-									)
+									<>
+										<span>{player.username ?? ""}</span> <br />
+										<span>Goals: {p.scores}</span> <br />
+										<span>Kills: {p.kills}</span> <br />
+										<span>Deaths: {p.deaths}</span> <br />
+										<span>Voids: {p.voids}</span>
+									</>
 								}
 							/>
 						);
