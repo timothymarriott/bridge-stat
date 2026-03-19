@@ -368,7 +368,8 @@ export default class Flashback {
 		const metadata_file = zip.file("metadata.json");
 
 		if (metadata_file == null) {
-			throw new Error("Couldnt read flashback metadata.");
+			console.error("Could not read flashback metadata.");
+			return [];
 		}
 
 		try {
