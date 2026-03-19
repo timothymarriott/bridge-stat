@@ -6,10 +6,12 @@ export type User = InferSelectModel<typeof user>;
 export type UserProfile = InferSelectModel<typeof user_profiles>;
 export type PlayerPerformance = InferSelectModel<typeof user_performances>;
 export type LinkRequest = InferSelectModel<typeof link_requests>;
-export type MatchInsertData = InferInsertModel<typeof matches>;
+export type MatchInsertData = Omit<InferInsertModel<typeof matches>, "verified">;
 export type Match = InferSelectModel<typeof matches> & {
 	red_players: PlayerPerformance[];
 	blue_players: PlayerPerformance[];
+	red_scores: number;
+	blue_scores: number;
 };
 
 export enum SortMode {
@@ -31,6 +33,73 @@ export interface FullMatchInsertData {
 	map: string;
 	red_players: MatchPlayerInsertData[];
 	blue_players: MatchPlayerInsertData[];
+}
+
+export async function GenerateMatchHash(data: FullMatchInsertData): Promise<string> {
+	let hash_number = data.duration;
+
+	[...data.red_players, ...data.blue_players].forEach((p) => {
+		hash_number ^= p.scores;
+		hash_number ^= p.kills;
+		hash_number ^= p.deaths;
+	});
+
+	const hash_data = {
+		duration: data.duration,
+		map: data.map,
+		hash: data.duration ^ hash_number,
+	};
+
+	const encoder = new TextEncoder();
+	const hash = await crypto.subtle.digest("SHA-256", encoder.encode(JSON.stringify(hash_data)));
+	const hashArray = Array.from(new Uint8Array(hash));
+	const hashhex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+	return hashhex;
+}
+
+export async function GetMatchPreview(insertData: FullMatchInsertData): Promise<Match> {
+	const result: Match = {
+		duration: insertData.duration,
+		id: Math.random() * 10000,
+		hash: await GenerateMatchHash(insertData),
+		map: insertData.map,
+		uploaded_at: insertData.date,
+		verified: 1,
+		red_players: [],
+		blue_players: [],
+		red_scores: 0,
+		blue_scores: 0,
+	};
+
+	insertData.blue_players.forEach((p, i) => {
+		result.blue_scores += p.scores;
+		result.blue_players.push({
+			user: p.username,
+			id: result.id - i,
+			match: result.id,
+			team: Team.BLUE,
+			kills: p.kills,
+			deaths: p.deaths,
+			voids: p.voids,
+			scores: p.scores,
+		});
+	});
+
+	insertData.red_players.forEach((p, i) => {
+		result.red_scores += p.scores;
+		result.red_players.push({
+			user: p.username,
+			id: result.id + i,
+			match: result.id,
+			team: Team.RED,
+			kills: p.kills,
+			deaths: p.deaths,
+			voids: p.voids,
+			scores: p.scores,
+		});
+	});
+
+	return result;
 }
 
 export type PlayerPerformanceInsertData = InferInsertModel<typeof user_performances>;
@@ -83,3 +152,7 @@ export enum Team {
 }
 
 export type WorkerApp = typeof app;
+
+export interface MatchUploadRequestMetaData {
+	matches: FullMatchInsertData[];
+}

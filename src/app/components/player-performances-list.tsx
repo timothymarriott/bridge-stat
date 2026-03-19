@@ -83,11 +83,12 @@ export default function PlayerPerformancesList({
 				elos != null &&
 				performances.length > 0 &&
 				performances.map((perf, i) => {
+					if (perf.match == null) return null;
 					return (
 						<PerformanceDisplay
 							key={i}
 							elos={elos}
-							matches={matches}
+							match={matches[perf.match]}
 							i={i}
 							perf={perf}
 							players={players}
@@ -179,14 +180,14 @@ function TeamInfo({
 
 export const TeamInfoComponent = React.memo(TeamInfo);
 
-function PerformanceDisplay({
+export function PerformanceDisplay({
 	perf,
 	i,
-	matches,
+	match,
 	elos,
 	players,
 }: {
-	matches: Record<string, Match>;
+	match: Match;
 	perf: PlayerPerformance;
 	i: number;
 	players: OptionalPlayerInformation[];
@@ -194,8 +195,6 @@ function PerformanceDisplay({
 }) {
 	const [hovered, setHovered] = useState<boolean>(false);
 	if (perf.match == null) return null;
-
-	const match = matches[perf.match];
 
 	let red_scores = 0;
 	let blue_scores = 0;

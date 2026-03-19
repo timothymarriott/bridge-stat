@@ -43,7 +43,7 @@ const app = new Hono<{
 	.use("*", logger())
 	.use("*", async (c, next) => {
 		try {
-			UpdateDB(c);
+			UpdateDB(c.env.bridge);
 		} catch (e) {
 			console.error(e);
 			return c.text("Failed to update DB", 503);

@@ -135,19 +135,19 @@ export function SidebarUser() {
 											<LayoutDashboardIcon />
 											Admin Dashboard
 										</DropdownMenuItem>
-
-										<DialogTrigger asChild>
-											<DropdownMenuItem>
-												<UploadIcon />
-												Upload Match
-											</DropdownMenuItem>
-										</DialogTrigger>
-
-										<DropdownMenuSeparator />
 									</>
 								) : (
 									<></>
 								)}
+
+								<DialogTrigger asChild>
+									<DropdownMenuItem>
+										<UploadIcon />
+										Upload Match
+									</DropdownMenuItem>
+								</DialogTrigger>
+
+								<DropdownMenuSeparator />
 
 								<DropdownMenuItem
 									variant="destructive"
