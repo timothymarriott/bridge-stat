@@ -23,7 +23,12 @@ export function LayoutSidebar() {
 		players: [],
 		matches: null,
 	});
-	const player_list = data.players.length == 0 ? null : data.players;
+	// Hide players that have no recorded match performances.
+	// Previously they were rendered but `disabled`, which made them appear grayed out.
+	const player_list =
+		data.players.length == 0
+			? null
+			: data.players.filter((p) => p.exists && p.performances.length > 0);
 	const matches = data.matches;
 
 	const [elos, setElos] = useState<EloInformation | null>(null);

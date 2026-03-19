@@ -18,6 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
 	Select,
 	SelectContent,
@@ -26,9 +27,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
-import { useIsMobile } from "@/lib/use-mobile";
 import { CalculateElos, EloInformation } from "@/lib/stats";
 import { OptionalPlayerInformation, PlayerPerformance, SortMode, Team } from "@/worker/types";
 import { createFileRoute } from "@tanstack/react-router";
@@ -44,6 +43,29 @@ export interface FilterState {
 	theirTeamCount: number;
 }
 
+function PlayerSummarySkeleton() {
+	return (
+		<Card className="ring-sidebar-border rounded-lg shrink-0 w-full max-w-full min-w-0 space-y-0">
+			<CardHeader>
+				<CardTitle className="flex flex-row items-center space-x-2 text-lg min-w-0">
+					<Skeleton
+						style={{ width: 32, height: 32 }}
+						className="rounded-sm bg-muted-foreground/20"
+					/>
+					<Skeleton
+						style={{
+							width: 256,
+							height: 20,
+							minWidth: 0,
+						}}
+						className="bg-muted-foreground/20"
+					/>
+				</CardTitle>
+			</CardHeader>
+		</Card>
+	);
+}
+
 function User() {
 	const { username } = Route.useParams();
 
@@ -52,7 +74,6 @@ function User() {
 	const [winCount, setWinCount] = useState<number>(0);
 	const [goalsPerGame, setGoalsPerGame] = useState<number>(0);
 	const [lossCount, setLossCount] = useState<number>(0);
-	const isMobile = useIsMobile();
 
 	const data = useQueryData(playersQuery);
 
@@ -166,9 +187,30 @@ function User() {
 	return (
 		<div className="flex flex-col h-full space-y-2">
 			{player == null || matches == null ? (
-				<div className="flex flex-col items-center">
-					<Spinner className="size-16" />
-					<div className="w-full text-center h-full">Loading...</div>
+				<div className="flex flex-col h-full space-y-2">
+					<PlayerSummarySkeleton />
+
+					<div className={"flex-1 min-h-0 flex flex-row space-x-2 min-w-0"}>
+						<Card
+							className={"ring-sidebar-border rounded-lg max-h-full min-w-0 "}
+							style={{
+								width: "calc(var(--spacing) * 140)",
+								maxWidth: "100%",
+							}}
+						>
+							<CardHeader>
+								<CardTitle>Performances</CardTitle>
+							</CardHeader>
+							<CardContent className="flex-1 min-h-0 px-1"></CardContent>
+						</Card>
+
+						<Card className="ring-sidebar-border rounded-lg max-h-full flex-1 min-w-0 min-h-0">
+							<CardHeader>
+								<CardTitle>User Info</CardTitle>
+							</CardHeader>
+							<CardContent className="flex-1 min-h-0 px-1"></CardContent>
+						</Card>
+					</div>
 				</div>
 			) : player.exists ? (
 				<>
@@ -180,51 +222,170 @@ function User() {
 							</CardTitle>
 						</CardHeader>
 						<CardContent className="text-sm flex flex-row space-x-3 flex-wrap">
-							<div>
-								<span className="font-bold">{winCount + lossCount}</span>
-								<span className="text-accent-foreground/50"> games played</span>
-							</div>
-							<span className="font-extrabold">•</span>
-							<div>
-								<span className="font-bold">{winCount}</span>
-								<span className="text-accent-foreground/50"> games won</span>
-							</div>
-							<span className="font-extrabold">•</span>
-							<div>
-								<span className="font-bold">{lossCount}</span>
-								<span className="text-accent-foreground/50"> games lost</span>
-							</div>
-							<span className="font-extrabold">•</span>
-							<div>
-								<span className="font-bold">
-									{winCount + lossCount > 0
-										? Math.round((winCount / (winCount + lossCount)) * 100)
-										: 0}
-								</span>
-								<span className="text-accent-foreground/50">% winrate</span>
-							</div>
-							<span className="font-extrabold">•</span>
-							<div>
-								<span className="text-accent-foreground/50">kdr </span>
-								<span className="font-bold">{Math.round(kdr * 100) / 100}</span>
-							</div>
-
-							<span className="font-extrabold">•</span>
-							<div>
-								<span className="font-bold">
-									{Math.round(goalsPerGame * 100) / 100}
-								</span>
-								<span className="text-accent-foreground/50">
-									{" "}
-									goals per game on average
-								</span>
-							</div>
+							{calced === player.id ? (
+								<>
+									<div>
+										<span className="font-bold">{winCount + lossCount}</span>
+										<span className="text-accent-foreground/50">
+											{" "}
+											games played
+										</span>
+									</div>
+									<span className="font-extrabold">•</span>
+									<div>
+										<span className="font-bold">{winCount}</span>
+										<span className="text-accent-foreground/50">
+											{" "}
+											games won
+										</span>
+									</div>
+									<span className="font-extrabold">•</span>
+									<div>
+										<span className="font-bold">{lossCount}</span>
+										<span className="text-accent-foreground/50">
+											{" "}
+											games lost
+										</span>
+									</div>
+									<span className="font-extrabold">•</span>
+									<div>
+										<span className="font-bold">
+											{winCount + lossCount > 0
+												? Math.round(
+														(winCount / (winCount + lossCount)) * 100,
+													)
+												: 0}
+										</span>
+										<span className="text-accent-foreground/50">% winrate</span>
+									</div>
+									<span className="font-extrabold">•</span>
+									<div>
+										<span className="text-accent-foreground/50">kdr </span>
+										<span className="font-bold">
+											{Math.round(kdr * 100) / 100}
+										</span>
+									</div>
+									<span className="font-extrabold">•</span>
+									<div>
+										<span className="font-bold">
+											{Math.round(goalsPerGame * 100) / 100}
+										</span>
+										<span className="text-accent-foreground/50">
+											{" "}
+											goals per game on average
+										</span>
+									</div>
+								</>
+							) : (
+								<></>
+							)}
 						</CardContent>
 					</Card>
-					{isMobile ? (
-						<Card className="flex-1 min-h-0 flex flex-col w-full ring-sidebar-border rounded-lg">
+
+					<div className={"flex-1 min-h-0 flex flex-row space-x-2 min-w-0"}>
+						<Card
+							className={"ring-sidebar-border rounded-lg max-h-full min-w-0 "}
+							style={{
+								width: "calc(var(--spacing) * 140)",
+								maxWidth: "100%",
+							}}
+						>
 							<CardHeader>
 								<CardTitle>Performances</CardTitle>
+								<div className="flex flex-row space-x-1 items-center">
+									<Dialog>
+										<DialogTrigger asChild>
+											<Button variant={"secondary"}>Filters</Button>
+										</DialogTrigger>
+										<DialogContent>
+											<DialogHeader>
+												<DialogTitle>Filters</DialogTitle>
+											</DialogHeader>
+											<div className="flex flex-row space-x-1 items-center">
+												<Switch
+													checked={tempFilterState.filterTeamCount}
+													onCheckedChange={(v) => {
+														setTempFilterState((o) => {
+															return {
+																...o,
+																filterTeamCount: v,
+															};
+														});
+													}}
+												/>
+												<span>Player Count</span>
+											</div>
+											{tempFilterState.filterTeamCount ? (
+												<div className="space-y-2">
+													<Label>Your Team</Label>
+													<Input
+														defaultValue={tempFilterState.yourTeamCount}
+														type="number"
+														onChange={(v) => {
+															setTempFilterState((o) => {
+																return {
+																	...o,
+																	yourTeamCount: Number.parseInt(
+																		v.target.value,
+																	),
+																};
+															});
+														}}
+													></Input>
+
+													<Label>Other Team</Label>
+													<Input
+														defaultValue={
+															tempFilterState.theirTeamCount
+														}
+														type="number"
+														onChange={(v) => {
+															setTempFilterState((o) => {
+																return {
+																	...o,
+																	theirTeamCount: Number.parseInt(
+																		v.target.value,
+																	),
+																};
+															});
+														}}
+													></Input>
+												</div>
+											) : null}
+											<DialogFooter>
+												<DialogClose
+													asChild
+													onClick={() => {
+														setFilterState(tempFilterState);
+													}}
+												>
+													<Button>Apply</Button>
+												</DialogClose>
+											</DialogFooter>
+										</DialogContent>
+									</Dialog>
+									<span>Sort</span>
+									<Select
+										onValueChange={(v) => {
+											setSortMode(v as SortMode);
+										}}
+										defaultValue="new_to_old"
+									>
+										<SelectTrigger>
+											<SelectValue />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectGroup>
+												<SelectItem value="new_to_old">
+													New To Old
+												</SelectItem>
+												<SelectItem value="old_to_new">
+													Old To New
+												</SelectItem>
+											</SelectGroup>
+										</SelectContent>
+									</Select>
+								</div>
 							</CardHeader>
 							<CardContent className="flex-1 min-h-0 px-1">
 								<ScrollArea className="h-full px-3">
@@ -240,151 +401,27 @@ function User() {
 								</ScrollArea>
 							</CardContent>
 						</Card>
-					) : (
-						<div className="flex-1 min-h-0 flex flex-row space-x-2">
-							<Card
-								className="ring-sidebar-border rounded-lg max-h-full"
-								style={{
-									width: "calc(var(--spacing) * 140)",
-								}}
-							>
-								<CardHeader>
-									<CardTitle>Performances</CardTitle>
-									<div className="flex flex-row space-x-1 items-center">
-										<Dialog>
-											<DialogTrigger asChild>
-												<Button variant={"secondary"}>Filters</Button>
-											</DialogTrigger>
-											<DialogContent>
-												<DialogHeader>
-													<DialogTitle>Filters</DialogTitle>
-												</DialogHeader>
-												<div className="flex flex-row space-x-1 items-center">
-													<Switch
-														checked={tempFilterState.filterTeamCount}
-														onCheckedChange={(v) => {
-															setTempFilterState((o) => {
-																return {
-																	...o,
-																	filterTeamCount: v,
-																};
-															});
-														}}
-													/>
-													<span>Player Count</span>
-												</div>
-												{tempFilterState.filterTeamCount ? (
-													<div className="space-y-2">
-														<Label>Your Team</Label>
-														<Input
-															defaultValue={
-																tempFilterState.yourTeamCount
-															}
-															type="number"
-															onChange={(v) => {
-																setTempFilterState((o) => {
-																	return {
-																		...o,
-																		yourTeamCount:
-																			Number.parseInt(
-																				v.target.value,
-																			),
-																	};
-																});
-															}}
-														></Input>
 
-														<Label>Other Team</Label>
-														<Input
-															defaultValue={
-																tempFilterState.theirTeamCount
-															}
-															type="number"
-															onChange={(v) => {
-																setTempFilterState((o) => {
-																	return {
-																		...o,
-																		theirTeamCount:
-																			Number.parseInt(
-																				v.target.value,
-																			),
-																	};
-																});
-															}}
-														></Input>
-													</div>
-												) : null}
-												<DialogFooter>
-													<DialogClose
-														asChild
-														onClick={() => {
-															setFilterState(tempFilterState);
-														}}
-													>
-														<Button>Apply</Button>
-													</DialogClose>
-												</DialogFooter>
-											</DialogContent>
-										</Dialog>
-										<span>Sort</span>
-										<Select
-											onValueChange={(v) => {
-												setSortMode(v as SortMode);
-											}}
-											defaultValue="new_to_old"
-										>
-											<SelectTrigger>
-												<SelectValue />
-											</SelectTrigger>
-											<SelectContent>
-												<SelectGroup>
-													<SelectItem value="new_to_old">
-														New To Old
-													</SelectItem>
-													<SelectItem value="old_to_new">
-														Old To New
-													</SelectItem>
-												</SelectGroup>
-											</SelectContent>
-										</Select>
-									</div>
-								</CardHeader>
-								<CardContent className="flex-1 min-h-0 px-1">
-									<ScrollArea className="h-full px-3">
-										{loading ? (
-											<p>Loading...</p>
-										) : (
-											<PlayerPerformancesList
-												player={player}
-												sortMode={sortMode}
-												filterState={filterState}
-											/>
-										)}
-									</ScrollArea>
-								</CardContent>
-							</Card>
-
-							<Card className="ring-sidebar-border rounded-lg max-h-full flex-1">
-								<CardHeader>
-									<CardTitle>User Info</CardTitle>
-								</CardHeader>
-								<CardContent className="flex-1 min-h-0 px-1">
-									<ScrollArea className="h-full px-3">
-										{elos != null ? (
-											<>
-												<PlayerDetails
-													player={player}
-													elos={elos}
-													players={players}
-													matches={matches}
-												/>
-											</>
-										) : null}
-									</ScrollArea>
-								</CardContent>
-							</Card>
-						</div>
-					)}
+						<Card className="ring-sidebar-border rounded-lg max-h-full flex-1 min-w-0 min-h-0">
+							<CardHeader>
+								<CardTitle>User Info</CardTitle>
+							</CardHeader>
+							<CardContent className="flex-1 min-h-0 px-1">
+								<ScrollArea className="h-full px-3">
+									{elos != null ? (
+										<PlayerDetails
+											player={player}
+											elos={elos}
+											players={players}
+											matches={matches}
+										/>
+									) : (
+										<></>
+									)}
+								</ScrollArea>
+							</CardContent>
+						</Card>
+					</div>
 				</>
 			) : (
 				<div className="flex flex-col items-center">
