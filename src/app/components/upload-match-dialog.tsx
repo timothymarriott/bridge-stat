@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { ReactNode, useRef, useState } from "react";
-import Flashback from "../../lib/flashback";
+import Flashback, { TextComponent } from "../../lib/flashback";
 import {
 	FullMatchInsertData,
 	GetMatchPreview,
@@ -17,6 +17,8 @@ import {
 	MatchUploadRequestMetaData,
 } from "@/worker/types";
 import { Progress } from "@/components/ui/progress";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { TextComponentRenderer } from "./text-component-renderer";
 
 export default function UploadMatchDialog({ children }: { children: ReactNode }) {
 	const inputRef = useRef<HTMLInputElement>(null);
@@ -28,6 +30,8 @@ export default function UploadMatchDialog({ children }: { children: ReactNode })
 	const [isParsing, setIsParsing] = useState<boolean>(false);
 	const [parsingProgress, setParsingProgress] = useState<number>(0);
 
+	const [chatMessages, setChatMessages] = useState<TextComponent[]>([]);
+
 	const [matchesToUpload, setMatchesToUpload] = useState<
 		{
 			data: FullMatchInsertData[];
@@ -38,10 +42,23 @@ export default function UploadMatchDialog({ children }: { children: ReactNode })
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
 			{children}
-			<DialogContent className="sm:max-w-md" showCloseButton={false}>
+			<DialogContent className="sm:max-w-md w-md" showCloseButton={false}>
 				<DialogHeader>
 					<DialogTitle>Upload Matches</DialogTitle>
 				</DialogHeader>
+				{/* {isParsing || matchesToUpload.length > 0 ? (
+					<ScrollArea className="h-72 bg-secondary/80 p-2 rounded-sm">
+						<div className="flex flex-col">
+							{chatMessages.map((msg) => {
+								return (
+									<>
+										<TextComponentRenderer content={msg} /> <br></br>{" "}
+									</>
+								);
+							})}
+						</div>
+					</ScrollArea>
+				) : null} */}
 				{isUploading || isParsing ? (
 					isUploading ? (
 						<div>Uploading...</div>
@@ -88,6 +105,7 @@ export default function UploadMatchDialog({ children }: { children: ReactNode })
 												setIsParsing(false);
 												setIsUploading(false);
 												setMatchesToUpload([]);
+												setChatMessages([]);
 												setOpen(false);
 											}}
 										>
@@ -98,6 +116,7 @@ export default function UploadMatchDialog({ children }: { children: ReactNode })
 											onClick={() => {
 												void (async () => {
 													setIsUploading(true);
+													setChatMessages([]);
 													const all_matches: FullMatchInsertData[] = [];
 													matchesToUpload.forEach((match) => {
 														all_matches.push(...match.data);
@@ -118,6 +137,7 @@ export default function UploadMatchDialog({ children }: { children: ReactNode })
 													});
 													setIsUploading(false);
 													setMatchesToUpload([]);
+													setChatMessages([]);
 													setOpen(false);
 												})();
 											}}
@@ -132,6 +152,7 @@ export default function UploadMatchDialog({ children }: { children: ReactNode })
 										onClick={() => {
 											void (async () => {
 												setIsParsing(true);
+												setParsingProgress(0);
 												if (
 													inputRef.current?.files &&
 													inputRef.current.files.length > 0
@@ -155,6 +176,14 @@ export default function UploadMatchDialog({ children }: { children: ReactNode })
 															const flashback = new Flashback(
 																file.lastModified,
 															);
+															flashback.callbacks.onChatMessage = (
+																content,
+															) => {
+																setChatMessages((old) => [
+																	...old,
+																	content,
+																]);
+															};
 															const res = await flashback.findGames(
 																await file.bytes(),
 															);
@@ -170,6 +199,10 @@ export default function UploadMatchDialog({ children }: { children: ReactNode })
 																match.red_players.forEach((v) => {
 																	v.username = v.username
 																		.replace(
+																			"trianglepoger",
+																			"trianglepoger1",
+																		)
+																		.replace(
 																			"JoeBartLover",
 																			"TheMoon021",
 																		)
@@ -181,6 +214,10 @@ export default function UploadMatchDialog({ children }: { children: ReactNode })
 
 																match.blue_players.forEach((v) => {
 																	v.username = v.username
+																		.replace(
+																			"trianglepoger",
+																			"trianglepoger1",
+																		)
 																		.replace(
 																			"JoeBartLover",
 																			"TheMoon021",
@@ -226,6 +263,7 @@ export default function UploadMatchDialog({ children }: { children: ReactNode })
 
 													setMatchesToUpload(matches);
 												}
+												setParsingProgress(1);
 												setIsParsing(false);
 											})();
 										}}

@@ -252,6 +252,8 @@ export const PacketParsers: Record<string, PacketParser | undefined> = {
 				}
 			}
 		}
+
+		flashback.callbacks.onChatMessage(content);
 	},
 	"minecraft:set_subtitle_text": (flashback, reader) => {
 		const content = reader.read_nbt() as TextComponent;
@@ -264,6 +266,7 @@ export const PacketParsers: Record<string, PacketParser | undefined> = {
 export const ActionParsers: Record<string, PacketParser | undefined> = {
 	"flashback:action/next_tick": (flashback) => {
 		flashback.tick += 1;
+		flashback.callbacks.onTick();
 	},
 	"flashback:action/game_packet": async (flashback, reader) => {
 		const packet_id = reader.read_varint();
@@ -311,6 +314,18 @@ export default class Flashback {
 
 	could_be_bridge = false;
 	last_map: string | undefined = undefined;
+
+	callbacks: {
+		onChatMessage: (content: TextComponent) => void;
+		onTick: () => void;
+	} = {
+		onChatMessage: () => {
+			/* empty */
+		},
+		onTick: () => {
+			/* empty */
+		},
+	};
 
 	zip: JSZip | null = null;
 
