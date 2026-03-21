@@ -9,6 +9,7 @@ import { AddLinkRequest, GetMatches, GetUserProfileById } from "../requests";
 import { Match, MCProfileInfo } from "../types";
 import { RequireAuthInformation } from "..";
 import { better_auth } from "../better_auth";
+import upload from "./upload";
 
 export const api = new Hono<{
 	Variables: {
@@ -16,6 +17,17 @@ export const api = new Hono<{
 		session: typeof better_auth.$Infer.Session.session | null;
 	};
 }>()
+	.use("*", async (c, next) => {
+		try {
+			await next();
+		} catch (err) {
+			console.error(err);
+			return c.json({
+				error: err,
+				status: 500,
+			});
+		}
+	})
 	.get("/", (c) => c.json({}))
 	.route("/admin", admin)
 	.use("/link/request/*", RequireAuthInformation)
@@ -50,6 +62,7 @@ export const api = new Hono<{
 			credentials: true,
 		}),
 	)
+	.route("/upload", upload)
 	.get<"/profile/uuid/:uuid", object, TypedResponse<MCProfileInfo | null>>(
 		"/profile/uuid/:uuid",
 		async (c) => {
@@ -68,6 +81,10 @@ export const api = new Hono<{
 	.get<"/matches", object, TypedResponse<Record<string, Match>>>("/matches", async (c) => {
 		const matches = await GetMatches();
 
+		return c.json(matches);
+	})
+	.get<"/unverified", object, TypedResponse<Record<string, Match>>>("/unverified", async (c) => {
+		const matches = await GetMatches(false);
 		return c.json(matches);
 	})
 	.route("/player", player)

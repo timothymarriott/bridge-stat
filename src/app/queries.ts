@@ -82,20 +82,26 @@ export const playersQuery = createQuery<{
 				players: [],
 				matches: null,
 			};
-		const matches = await matchesres.json();
+		const rawmatches = await matchesres.json();
 
-		Object.keys(matches).forEach((k) => {
+		Object.keys(rawmatches).forEach((k) => {
 			let red_scores = 0;
-			matches[k].red_players.forEach((p) => (red_scores += p.scores));
+			rawmatches[k].red_players.forEach((p) => (red_scores += p.scores));
 			let blue_scores = 0;
-			matches[k].blue_players.forEach((p) => (blue_scores += p.scores));
+			rawmatches[k].blue_players.forEach((p) => (blue_scores += p.scores));
 
 			const updated: Match = {
-				...matches[k],
+				...rawmatches[k],
 				red_scores: red_scores,
 				blue_scores: blue_scores,
 			};
-			matches[k] = updated;
+			rawmatches[k] = updated;
+		});
+		const raw = Object.values(rawmatches);
+		const matches: Record<string, Match> = {};
+		raw.sort((a, b) => a.uploaded_at - b.uploaded_at);
+		raw.forEach((m) => {
+			matches[m.id] = m;
 		});
 		const res = await api_client.api.player.list.$get();
 		if (!res.ok)

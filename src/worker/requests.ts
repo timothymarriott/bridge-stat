@@ -2,9 +2,13 @@ import { link_requests, matches, user, user_performances, user_profiles } from "
 import { eq, InferSelectModel } from "drizzle-orm";
 import { FetchMojangProfile } from "./mojang";
 import {
+	FullMatchInsertData,
+	GenerateMatchHash,
 	Match,
+	MatchInsertData,
 	OptionalPlayerInformation,
 	OptionalUserInformation,
+	PlayerPerformanceInsertData,
 	Team,
 	UserInformation,
 } from "./types";
@@ -80,7 +84,62 @@ export async function AddLinkRequest(id: string, uuid: string) {
 	await SetUserAwaitingLinkRequest(id, 1);
 }
 
-export async function GetMatches(): Promise<Record<string, Match>> {
+export async function UploadMatch(data: FullMatchInsertData, verified = false) {
+	const users = await GetUsers();
+
+	const players = users.map((usr) => GetPlayerInformationByUser(usr));
+
+	const match_data: MatchInsertData = {
+		...data,
+		uploaded_at: data.date,
+		hash: await GenerateMatchHash(data),
+	};
+
+	const existingMatch = await db
+		.select()
+		.from(matches)
+		.where(eq(matches.hash, match_data.hash))
+		.limit(1)
+		.get();
+
+	if (existingMatch) {
+		throw new Error("Cannot upload duplicate match.");
+	}
+
+	const [match] = await db
+		.insert(matches)
+		.values({
+			...match_data,
+			verified: verified ? 1 : 0,
+		})
+		.returning();
+
+	const perfs: PlayerPerformanceInsertData[] = [];
+
+	for (const info of [...data.red_players, ...data.blue_players]) {
+		const player = players.find((p) => p.exists && p.username == info.username);
+		if (player && player.exists) {
+			perfs.push({
+				match: match.id,
+				user: player.id,
+				team: info.team,
+				kills: info.kills,
+				deaths: info.deaths,
+				voids: info.voids,
+				scores: info.scores,
+			});
+		} else {
+			await db.delete(matches).where(eq(matches.id, match.id));
+			throw new Error("User " + info.username + " not found.");
+		}
+	}
+
+	for (const perf of perfs) {
+		await db.insert(user_performances).values(perf);
+	}
+}
+
+export async function GetMatches(verified = true): Promise<Record<string, Match>> {
 	const raw = await TimeRequest(
 		db
 			.select({
@@ -89,6 +148,7 @@ export async function GetMatches(): Promise<Record<string, Match>> {
 				performance: user_performances,
 			})
 			.from(matches)
+			.where(eq(matches.verified, verified ? 1 : 0))
 			.leftJoin(user_performances, eq(user_performances.match, matches.id)),
 		"Reaching out to cloudflare to get matches",
 	);
@@ -102,6 +162,8 @@ export async function GetMatches(): Promise<Record<string, Match>> {
 				...match.match,
 				red_players: [],
 				blue_players: [],
+				red_scores: 0,
+				blue_scores: 0,
 			};
 		}
 		if (match.performance != null && match.performance.team == Team.RED) {

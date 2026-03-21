@@ -2,6 +2,8 @@ import { relations, sql } from "drizzle-orm";
 import { sqliteTable, text, integer, index, int, real } from "drizzle-orm/sqlite-core";
 import { Team } from "./types";
 
+// PRE_REUPLOADALL 0000032d-00000000-00005033-fddac6f4237df440bdf1fcc84d8e19f8
+
 export const user = sqliteTable("user", {
 	id: text("id").primaryKey(),
 	name: text("name").notNull(),
@@ -56,14 +58,13 @@ export const matches = sqliteTable("matches", {
 	id: int("id").primaryKey(),
 	hash: text("hash").notNull().unique(),
 	map: text("map"),
-	red_scores: int("red_scores").default(0).notNull(),
-	blue_scores: int("blue_scores").default(0).notNull(),
 	duration: real("duration").notNull().default(-1),
 	uploaded_at: int("uploaded_at")
 		.notNull()
 		.$default(() => {
 			return new Date().getTime();
 		}),
+	verified: int("verified").default(1).notNull(),
 });
 
 export const user_performances = sqliteTable("user_performances", {
