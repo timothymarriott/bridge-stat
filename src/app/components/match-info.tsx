@@ -1,6 +1,6 @@
 import { GetConfidencePercentage, GetELO } from "@/lib/stats";
 import { Match, PlayerInformation, PlayerPerformance, Team } from "@/worker/types";
-import { TeamInfoComponent } from "./player-performances-list";
+import { TeamInfoComponent } from "./performances-list";
 import { Separator } from "@/components/ui/separator";
 import { useData } from "./data-hook";
 

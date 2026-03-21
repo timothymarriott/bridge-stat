@@ -39,7 +39,6 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
 				...p,
 				performances: perfs,
 			};
-			console.log(perfs);
 		});
 
 		return {

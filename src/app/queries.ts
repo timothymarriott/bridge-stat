@@ -59,22 +59,24 @@ export const dataQuery = createQuery<{
 		console.log("Fetching data...");
 		const matchesres = await api_client.api.matches.$get();
 		if (!matchesres.ok) throw new Error("Failed to fetch match data.");
-		const rawmatches = await matchesres.json();
+		let rawmatches = await matchesres.json();
 
-		rawmatches.forEach((match) => {
+		rawmatches = rawmatches.map((match) => {
 			let red_scores = 0;
 			match.red_players.forEach((p) => (red_scores += p.scores));
 			let blue_scores = 0;
 			match.blue_players.forEach((p) => (blue_scores += p.scores));
 
-			const updated: Match = {
+			return {
 				...match,
 				red_scores: red_scores,
 				blue_scores: blue_scores,
 			};
-			match = updated;
 		});
 		rawmatches.sort((a, b) => a.uploaded_at - b.uploaded_at);
+		rawmatches = rawmatches.filter(
+			(m) => m.blue_players.length > 0 && m.red_players.length > 0,
+		);
 
 		const res = await api_client.api.player.list.$get();
 		if (!res.ok) throw new Error("Failed to fetch player list");

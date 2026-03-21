@@ -57,7 +57,10 @@ export async function GenerateMatchHash(data: FullMatchInsertData): Promise<stri
 	return hashhex;
 }
 
-export async function GetMatchPreview(insertData: FullMatchInsertData): Promise<Match> {
+export async function GetMatchPreview(
+	insertData: FullMatchInsertData,
+	players: PlayerInformation[],
+): Promise<Match> {
 	const result: Match = {
 		duration: insertData.duration,
 		id: Math.random() * 10000,
@@ -72,9 +75,11 @@ export async function GetMatchPreview(insertData: FullMatchInsertData): Promise<
 	};
 
 	insertData.blue_players.forEach((p, i) => {
+		const player = players.find((_p) => _p.username == p.username);
+		if (!player) return;
 		result.blue_scores += p.scores;
 		result.blue_players.push({
-			user: p.username,
+			user: player.id,
 			id: result.id - i,
 			match: result.id,
 			team: Team.BLUE,
@@ -86,9 +91,11 @@ export async function GetMatchPreview(insertData: FullMatchInsertData): Promise<
 	});
 
 	insertData.red_players.forEach((p, i) => {
+		const player = players.find((_p) => _p.username == p.username);
+		if (!player) return;
 		result.red_scores += p.scores;
 		result.red_players.push({
-			user: p.username,
+			user: player.id,
 			id: result.id + i,
 			match: result.id,
 			team: Team.RED,

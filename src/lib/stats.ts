@@ -85,6 +85,7 @@ export function CalculateElos(players: PlayerInformation[], matches: Match[]): E
 
 		if (redTeam.length == 0 || blueTeam.length == 0) {
 			console.error("Empty Team");
+
 			continue;
 		}
 

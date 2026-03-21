@@ -1,4 +1,10 @@
-import { Match, PlayerInformation, PlayerPerformance, SortMode, Team } from "@/worker/types";
+import {
+	Match,
+	OptionalPlayerInformation,
+	PlayerPerformance,
+	SortMode,
+	Team,
+} from "@/worker/types";
 import MinecraftAvatar from "./mc-avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useEffect, useMemo, useState } from "react";
@@ -8,12 +14,14 @@ import { MatchInfo } from "./match-info";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useData } from "./data-hook";
 
-export default function PlayerPerformancesList({
+export default function PerformancesList({
 	player,
+	list,
 	sortMode,
 	filterState,
 }: {
-	player: PlayerInformation;
+	player: OptionalPlayerInformation;
+	list: PlayerPerformance[];
 	sortMode: SortMode;
 	filterState: FilterState;
 }) {
@@ -26,7 +34,7 @@ export default function PlayerPerformancesList({
 
 	const performances = useMemo<PlayerPerformance[]>(() => {
 		if (matches != null) {
-			return player.performances
+			return list
 				.filter((a) => {
 					if (filterState.filterTeamCount) {
 						if (!a.match) return false;
@@ -62,7 +70,7 @@ export default function PlayerPerformancesList({
 				});
 		}
 		return [];
-	}, [player, filterState, matches, sortMode, data.matchesMap]);
+	}, [list, filterState, matches, sortMode, data.matchesMap]);
 
 	useEffect(() => {
 		void (async () => {
@@ -198,31 +206,21 @@ export function PerformanceDisplay({
 	match,
 }: {
 	match: Match;
-	perf: PlayerPerformance;
+	perf?: PlayerPerformance;
 	i: number;
 }) {
 	const data = useData();
 	const [hovered, setHovered] = useState<boolean>(false);
-	if (perf.match == null) return null;
 
-	let red_scores = 0;
-	let blue_scores = 0;
+	const winner: Team = match.red_scores > match.blue_scores ? Team.RED : Team.BLUE;
 
-	for (const info of [...match.blue_players, ...match.red_players]) {
-		if (info.team == Team.RED) {
-			red_scores += info.scores;
-		} else {
-			blue_scores += info.scores;
-		}
-	}
-
-	const winner: Team = red_scores > blue_scores ? Team.RED : Team.BLUE;
-
-	const player = data.players.find((p) => p.id == perf.user);
-
-	if (!player || !perf.user) {
-		return null;
-	}
+	const player: OptionalPlayerInformation = data.players
+		.map<OptionalPlayerInformation>((p) => {
+			return { ...p, exists: true };
+		})
+		.find((p) => perf && p.exists && p.id == perf.user) ?? {
+		exists: false,
+	};
 
 	return (
 		<Popover key={i}>
@@ -239,41 +237,63 @@ export function PerformanceDisplay({
 						setHovered(false);
 					}}
 				>
-					{perf.team == Team.RED ? (
+					{!perf || perf.team == Team.RED ? (
 						<TeamInfoComponent
 							match={match}
 							team={Team.RED}
 							side="left"
-							priority={player.id}
+							priority={player.exists ? player.id : undefined}
 						/>
 					) : (
 						<TeamInfoComponent
 							match={match}
 							team={Team.BLUE}
 							side="left"
-							priority={player.id}
+							priority={player.exists ? player.id : undefined}
 						/>
 					)}
 
 					<div className={"text-center grid grid-cols-3"}>
 						<div>
-							<span
-								className={
-									"font-bold " +
-									(perf.team == Team.RED ? "text-red-400" : "text-blue-400")
-								}
-							>
-								{perf.team == Team.RED ? red_scores : blue_scores}
-							</span>
-							<span className="text-accent-foreground/50 font-bold"> - </span>
-							<span
-								className={
-									"font-bold " +
-									(perf.team == Team.RED ? "text-blue-400" : "text-red-400")
-								}
-							>
-								{perf.team == Team.RED ? blue_scores : red_scores}
-							</span>
+							{perf ? (
+								<>
+									<span
+										className={
+											"font-bold " +
+											(perf.team == Team.RED
+												? "text-red-400"
+												: "text-blue-400")
+										}
+									>
+										{perf.team == Team.RED
+											? match.red_scores
+											: match.blue_scores}
+									</span>
+									<span className="text-accent-foreground/50 font-bold"> - </span>
+									<span
+										className={
+											"font-bold " +
+											(perf.team == Team.RED
+												? "text-blue-400"
+												: "text-red-400")
+										}
+									>
+										{perf.team == Team.RED
+											? match.blue_scores
+											: match.red_scores}
+									</span>
+								</>
+							) : (
+								<>
+									<span className={"font-bold text-red-400"}>
+										{match.red_scores}
+									</span>
+									<span className="text-accent-foreground/50 font-bold"> - </span>
+									<span className={"font-bold text-blue-400"}>
+										{match.blue_scores}
+									</span>
+								</>
+							)}
 						</div>
 						<div className="flex flex-row items-center justify-center">
 							<span className="font-bold">
@@ -286,65 +306,77 @@ export function PerformanceDisplay({
 									.padStart(2, "0")}
 							</span>
 						</div>
-						{winner == perf.team ? (
-							<span className="text-green-400">
-								{hovered && data.elos ? (
-									<span
-										className={
-											Math.floor(
+						{perf ? (
+							winner == perf.team ? (
+								<span className="text-green-400">
+									{hovered && data.elos && player.exists && perf.user ? (
+										<span
+											className={
+												Math.floor(
+													data.elos.matches[match.id].deltas[perf.user],
+												) > 0
+													? "text-green-400"
+													: "text-red-400"
+											}
+										>
+											{Math.floor(
 												data.elos.matches[match.id].deltas[perf.user],
 											) > 0
-												? "text-green-400"
-												: "text-red-400"
-										}
-									>
-										{Math.floor(data.elos.matches[match.id].deltas[perf.user]) >
-										0
-											? "+"
-											: ""}
-										{Math.floor(data.elos.matches[match.id].deltas[perf.user])}
-									</span>
-								) : (
-									"Won"
-								)}
-							</span>
+												? "+"
+												: ""}
+											{Math.floor(
+												data.elos.matches[match.id].deltas[perf.user],
+											)}
+										</span>
+									) : (
+										"Won"
+									)}
+								</span>
+							) : (
+								<span className="text-red-400">
+									{hovered && data.elos && player.exists && perf.user ? (
+										<span
+											className={
+												Math.floor(
+													data.elos.matches[match.id].deltas[perf.user],
+												) > 0
+													? "text-green-400"
+													: "text-red-400"
+											}
+										>
+											{Math.floor(
+												data.elos.matches[match.id].deltas[perf.user],
+											) > 0
+												? "+"
+												: ""}
+											{Math.floor(
+												data.elos.matches[match.id].deltas[perf.user],
+											)}
+										</span>
+									) : (
+										"Lost"
+									)}
+								</span>
+							)
 						) : (
-							<span className="text-red-400">
-								{hovered && data.elos ? (
-									<span
-										className={
-											Math.floor(
-												data.elos.matches[match.id].deltas[perf.user],
-											) > 0
-												? "text-green-400"
-												: "text-red-400"
-										}
-									>
-										{Math.floor(data.elos.matches[match.id].deltas[perf.user]) >
-										0
-											? "+"
-											: ""}
-										{Math.floor(data.elos.matches[match.id].deltas[perf.user])}
-									</span>
-								) : (
-									"Lost"
-								)}
+							<span className={winner == Team.RED ? "text-red-400" : "text-blue-400"}>
+								{winner == Team.RED ? "Red" : "Blue"}
 							</span>
 						)}
 					</div>
-					{perf.team == Team.RED ? (
+					{!perf || perf.team == Team.RED ? (
 						<TeamInfoComponent
 							match={match}
 							team={Team.BLUE}
 							side="right"
-							priority={player.id}
+							priority={player.exists ? player.id : undefined}
 						/>
 					) : (
 						<TeamInfoComponent
 							match={match}
 							team={Team.RED}
 							side="right"
-							priority={player.id}
+							priority={player.exists ? player.id : undefined}
 						/>
 					)}
 					{/* <span>
@@ -361,7 +393,9 @@ export function PerformanceDisplay({
 				}}
 				className="w-max"
 			>
-				<MatchInfo match={match} perf={perf} player={player}></MatchInfo>
+				{perf && player.exists ? (
+					<MatchInfo match={match} perf={perf} player={player}></MatchInfo>
+				) : null}
 			</PopoverContent>
 		</Popover>
 	);

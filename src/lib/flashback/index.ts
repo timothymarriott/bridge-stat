@@ -3,6 +3,7 @@ import { ByteReader } from "./byteReader";
 
 import rawpackets from "./packets.json";
 import { FullMatchInsertData, MatchPlayerInsertData, Team } from "@/worker/types";
+import { Awaitable } from "better-auth";
 
 export interface PacketGroup {
 	clientbound?: Record<
@@ -256,10 +257,10 @@ export const PacketParsers: Record<string, PacketParser | undefined> = {
 
 		flashback.callbacks.onChatMessage(content);
 	},
-	"minecraft:set_subtitle_text": (flashback, reader) => {
+	"minecraft:set_subtitle_text": async (flashback, reader) => {
 		const content = reader.read_nbt() as TextComponent;
 		if (content.extra?.length == 2 && content.extra[1]?.text == " won the Match!") {
-			flashback.end_match();
+			await flashback.end_match();
 		}
 	},
 };
@@ -327,11 +328,15 @@ export default class Flashback {
 	callbacks: {
 		onChatMessage: (content: TextComponent) => void;
 		onTick: (timestamp: number) => void;
+		onMatch: (match: FullMatchInsertData) => Awaitable<void>;
 	} = {
 		onChatMessage: () => {
 			/* empty */
 		},
 		onTick: () => {
+			/* empty */
+		},
+		onMatch: () => {
 			/* empty */
 		},
 	};
@@ -359,7 +364,7 @@ export default class Flashback {
 		}
 	}
 
-	end_match() {
+	async end_match() {
 		if (this.current_match != null) {
 			this.current_match.end_tick = this.tick;
 
@@ -378,6 +383,7 @@ export default class Flashback {
 				date: this.start_time,
 			};
 			this.matches.push(data);
+			await this.callbacks.onMatch(data);
 		}
 		this.current_match = null;
 	}

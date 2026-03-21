@@ -20,6 +20,8 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { api_client } from "../queries";
+import { PerformanceDisplay } from "./performances-list";
+import { useData } from "./data-hook";
 
 function getFileTimestamp(file: File): number {
 	const name = file.name;
@@ -45,6 +47,7 @@ function getFileTimestamp(file: File): number {
 }
 
 export default function UploadMatchDialog({ children }: { children: ReactNode }) {
+	const data = useData();
 	const inputRef = useRef<HTMLInputElement>(null);
 
 	const [open, setOpen] = useState<boolean>(false);
@@ -68,6 +71,8 @@ export default function UploadMatchDialog({ children }: { children: ReactNode })
 
 	const [matchesToUpload, setMatchesToUpload] = useState<FullMatchInsertData[]>([]);
 
+	const [matchPreviews, setMatchPreviews] = useState<Match[]>([]);
+
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
 			{children}
@@ -75,19 +80,13 @@ export default function UploadMatchDialog({ children }: { children: ReactNode })
 				<DialogHeader>
 					<DialogTitle>Upload Matches</DialogTitle>
 				</DialogHeader>
-				{/* {isParsing || matchesToUpload.length > 0 ? (
-					<ScrollArea className="h-72 bg-secondary/80 p-2 rounded-sm">
-						<div className="flex flex-col">
-							{chatMessages.map((msg) => {
-								return (
-									<>
-										<TextComponentRenderer content={msg} /> <br></br>{" "}
-									</>
-								);
-							})}
-						</div>
-					</ScrollArea>
-				) : null} */}
+				<ScrollArea className="h-72 p-2 rounded-sm">
+					<div className="space-y-1 flex flex-col">
+						{matchPreviews.map((m, i) => {
+							return <PerformanceDisplay match={m} i={i}></PerformanceDisplay>;
+						})}
+					</div>
+				</ScrollArea>
 				{isUploading || isParsing ? (
 					isUploading ? (
 						<div>Uploading...</div>
@@ -102,8 +101,11 @@ export default function UploadMatchDialog({ children }: { children: ReactNode })
 										if (p.progress == 1) return null;
 										return (
 											<>
-												<span>{p.name}</span>
-												<Progress value={p.progress * 100}></Progress>
+												<span key={p.name + "_name"}>{p.name}</span>
+												<Progress
+													key={p.name + "_prog"}
+													value={p.progress * 100}
+												></Progress>
 											</>
 										);
 									})}
@@ -118,7 +120,7 @@ export default function UploadMatchDialog({ children }: { children: ReactNode })
 						{/* //00000375-00000000-00005035-99f099f64a8bf012f70678156ee18dcb RESTORE POINT FOR OLD DATA */}
 						{matchesToUpload.length == 0 ? (
 							<Field>
-								<FieldLabel htmlFor={"file"}>File</FieldLabel>111
+								<FieldLabel htmlFor={"file"}>File</FieldLabel>
 								<Input
 									ref={inputRef}
 									multiple={true}
@@ -149,6 +151,7 @@ export default function UploadMatchDialog({ children }: { children: ReactNode })
 												setMatchesToUpload([]);
 												setOpen(false);
 												setProgressInfo([]);
+												setMatchPreviews([]);
 											}}
 										>
 											Abort
@@ -201,6 +204,7 @@ export default function UploadMatchDialog({ children }: { children: ReactNode })
 													setIsUploading(false);
 													setMatchesToUpload([]);
 													setProgressInfo([]);
+													setMatchPreviews([]);
 													setOpen(false);
 												})();
 											}}
@@ -216,12 +220,11 @@ export default function UploadMatchDialog({ children }: { children: ReactNode })
 											void (async () => {
 												setIsParsing(true);
 												setProgressInfo([]);
+												setMatchPreviews([]);
 												if (
 													inputRef.current?.files &&
 													inputRef.current.files.length > 0
 												) {
-													const matches: FullMatchInsertData[] = [];
-													const preview: Match[] = [];
 													const files: File[] = [];
 													for (const file of inputRef.current.files) {
 														files.push(file);
@@ -276,28 +279,9 @@ export default function UploadMatchDialog({ children }: { children: ReactNode })
 																);
 															};
 
-															const res = await flashback.findGames(
-																await file.bytes(),
-															);
-
-															setProgressInfo((orig) =>
-																[
-																	...orig.filter(
-																		(a) => a.name != file.name,
-																	),
-																	{
-																		name: file.name,
-																		progress: 1,
-																	},
-																].sort((a, b) =>
-																	a.name.localeCompare(b.name),
-																),
-															);
-
-															const matches_data: FullMatchInsertData[] =
-																[];
-
-															for (const match of res) {
+															flashback.callbacks.onMatch = async (
+																match,
+															) => {
 																match.red_players.forEach((v) => {
 																	v.username = v.username
 																		.replace(
@@ -338,37 +322,42 @@ export default function UploadMatchDialog({ children }: { children: ReactNode })
 																		);
 																});
 
-																matches_data.push(match);
+																setMatchesToUpload((orig) => [
+																	...orig,
+																	match,
+																]);
 
-																preview.push(
-																	await GetMatchPreview(match),
-																);
-															}
+																const preview =
+																	await GetMatchPreview(
+																		match,
+																		data.players,
+																	);
 
-															matches.push(...matches_data);
-															/*
+																setMatchPreviews((orig) => [
+																	...orig,
+																	preview,
+																]);
+															};
 
-												const formData = new FormData();
-												formData.append("file", file);
-												const upload_data: MatchUploadRequestMetaData = {
-													matches: matches_data,
-												};
-												formData.append(
-													"meta",
-													JSON.stringify(upload_data),
-												);
-												const upload_res = await fetch(
-													"/api/upload/match",
-													{
-														body: formData,
-														method: "POST",
-													},
-												);
-												*/
+															await flashback.findGames(
+																await file.bytes(),
+															);
+
+															setProgressInfo((orig) =>
+																[
+																	...orig.filter(
+																		(a) => a.name != file.name,
+																	),
+																	{
+																		name: file.name,
+																		progress: 1,
+																	},
+																].sort((a, b) =>
+																	a.name.localeCompare(b.name),
+																),
+															);
 														}),
 													);
-
-													setMatchesToUpload(matches);
 												}
 												setProgressInfo([]);
 												setIsParsing(false);

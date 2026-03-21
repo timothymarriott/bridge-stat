@@ -1,6 +1,6 @@
 import MinecraftAvatar from "@/app/components/mc-avatar";
 import PlayerDetails from "@/app/components/player-details";
-import PlayerPerformancesList from "@/app/components/player-performances-list";
+import PerformancesList from "@/app/components/performances-list";
 import { router } from "@/app/router";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -363,8 +363,9 @@ function User() {
 									{loading ? (
 										<p>Loading...</p>
 									) : (
-										<PlayerPerformancesList
+										<PerformancesList
 											player={player}
+											list={player.performances}
 											sortMode={sortMode}
 											filterState={filterState}
 										/>
