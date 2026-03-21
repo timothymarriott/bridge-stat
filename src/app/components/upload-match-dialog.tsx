@@ -79,7 +79,11 @@ export default function UploadMatchDialog({ children }: { children: ReactNode })
 																	"JoeBartLover",
 																	"TheMoon021",
 																)
-																.replace("Jordano120", "Tetron_");
+																.replace("Jordano120", "Tetron_")
+																.replace(
+																	"trianglepoger",
+																	"trianglepoger1",
+																);
 														});
 
 														match.blue_players.forEach((v) => {
@@ -88,7 +92,11 @@ export default function UploadMatchDialog({ children }: { children: ReactNode })
 																	"JoeBartLover",
 																	"TheMoon021",
 																)
-																.replace("Jordano120", "Tetron_");
+																.replace("Jordano120", "Tetron_")
+																.replace(
+																	"trianglepoger",
+																	"trianglepoger1",
+																);
 														});
 
 														await fetch("/api/admin/upload", {
