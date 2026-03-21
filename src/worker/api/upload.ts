@@ -1,8 +1,9 @@
 import { Hono } from "hono";
 import { better_auth } from "../better_auth";
 import { RequireAuthInformation } from "..";
-import { MatchUploadRequestMetaData } from "../types";
+import { MatchUploadMessage, MatchUploadResponse } from "../types";
 import { UploadMatch } from "../requests";
+import { upgradeWebSocket } from "hono/cloudflare-workers";
 
 export const upload = new Hono<{
 	Bindings: Cloudflare.Env;
@@ -12,43 +13,56 @@ export const upload = new Hono<{
 	};
 }>()
 	.use("*", RequireAuthInformation)
-	.post<
+	.get(
 		"/match",
-		{
-			in: FormData;
-		}
-	>("/match", async (c) => {
-		const data = await c.req.formData();
+		upgradeWebSocket(() => {
+			return {
+				onMessage(event, ws) {
+					const evt: WebSocketEventMap["message"] = event as WebSocketEventMap["message"];
+					void (async () => {
+						try {
+							const data = JSON.parse(evt.data as string) as MatchUploadMessage;
 
-		//const file = data.get("file");
-		const meta = data.get("meta") as string | null;
-		if (!meta) {
-			return c.body(null, 400);
-		}
+							const match = data.match;
 
-		const metadata = JSON.parse(meta) as MatchUploadRequestMetaData;
+							try {
+								await UploadMatch(match, false);
 
-		/*
-		const api = new UTApi({
-			token: c.env.UPLOADTHING_TOKEN as string,
-		});
+								const response: MatchUploadResponse = {
+									id: data.id,
+									success: true,
+								};
 
-		const res = await api.uploadFiles([file]);
-
-		if (res[0].error != null) {
-			return c.json({
-				erorr: res[0].error,
-			});
-		}
-*/
-		for (const match of metadata.matches) {
-			try {
-				await UploadMatch(match, false);
-			} catch {
-				/* empty */
-			}
-		}
-		return c.body(null, 200);
-	});
+								ws.send(JSON.stringify(response));
+							} catch (err) {
+								if (err instanceof Error) {
+									const response: MatchUploadResponse = {
+										id: data.id,
+										success: false,
+										error: err.message,
+									};
+									ws.send(JSON.stringify(response));
+								} else {
+									const response: MatchUploadResponse = {
+										id: data.id,
+										success: false,
+										error: "Internal Server Error",
+									};
+									ws.send(JSON.stringify(response));
+								}
+							}
+						} catch {
+							ws.send(
+								JSON.stringify({
+									type: "error",
+									message: "invalid payload",
+								}),
+							);
+						}
+					})();
+				},
+			};
+		}),
+	);
 
 export default upload;

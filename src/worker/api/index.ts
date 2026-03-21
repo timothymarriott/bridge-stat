@@ -78,12 +78,12 @@ export const api = new Hono<{
 			return c.json<MCProfileInfo>(await FetchMojangProfileFromName(name));
 		},
 	)
-	.get<"/matches", object, TypedResponse<Record<string, Match>>>("/matches", async (c) => {
+	.get<"/matches", object, TypedResponse<Match[]>>("/matches", async (c) => {
 		const matches = await GetMatches();
 
 		return c.json(matches);
 	})
-	.get<"/unverified", object, TypedResponse<Record<string, Match>>>("/unverified", async (c) => {
+	.get<"/unverified", object, TypedResponse<Match[]>>("/unverified", async (c) => {
 		const matches = await GetMatches(false);
 		return c.json(matches);
 	})

@@ -34,7 +34,7 @@ export function LayoutSidebar() {
 	const [elos, setElos] = useState<EloInformation | null>(null);
 
 	if (player_list != null && matches != null && elos == null) {
-		const vs = CalculateElos(player_list, Object.values(matches));
+		const vs = CalculateElos(player_list, matches);
 		setElos(vs);
 	}
 

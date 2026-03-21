@@ -139,7 +139,7 @@ export async function UploadMatch(data: FullMatchInsertData, verified = false) {
 	}
 }
 
-export async function GetMatches(verified = true): Promise<Record<string, Match>> {
+export async function GetMatches(verified = true): Promise<Match[]> {
 	const raw = await TimeRequest(
 		db
 			.select({
@@ -174,7 +174,7 @@ export async function GetMatches(verified = true): Promise<Record<string, Match>
 		}
 	}
 
-	return result;
+	return Object.values(result).sort((a, b) => a.uploaded_at - b.uploaded_at);
 }
 
 export async function GetUsers() {

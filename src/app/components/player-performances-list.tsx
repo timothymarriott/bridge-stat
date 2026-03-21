@@ -29,14 +29,18 @@ export default function PlayerPerformancesList({
 	const data = useQueryData(playersQuery, { players: [], matches: null });
 
 	const matches = data.matches;
+	const matchesMap: Record<string, Match> = {};
+	data.matches?.forEach((m) => {
+		matchesMap[m.id] = m;
+	});
 	const players = data.players;
 
 	const [performances, setPerformances] = useState<PlayerPerformance[]>([]);
 
 	const [elos, setElos] = useState<EloInformation | null>(null);
 
-	if (matches != null && players.length > 0 && elos == null) {
-		const elo = CalculateElos(players, Object.values(matches));
+	if (data.matches != null && players.length > 0 && elos == null) {
+		const elo = CalculateElos(players, data.matches);
 
 		setElos(elo);
 	}
@@ -65,7 +69,7 @@ export default function PlayerPerformancesList({
 					.filter((a) => {
 						if (filterState.filterTeamCount) {
 							if (!a.match) return false;
-							const match = matches[a.match];
+							const match = matchesMap[a.match];
 
 							const me_count =
 								a.team == Team.RED
@@ -85,10 +89,15 @@ export default function PlayerPerformancesList({
 						return true;
 					})
 					.sort((a, b) => {
+						if (!a.match) return a.id - b.id;
+						const amatch = matchesMap[a.match];
+
+						if (!b.match) return a.id - b.id;
+						const bmatch = matchesMap[b.match];
 						if (sortMode == SortMode.OldToNew) {
-							return a.id - b.id;
+							return amatch.uploaded_at - bmatch.uploaded_at;
 						}
-						return b.id - a.id;
+						return bmatch.uploaded_at - amatch.uploaded_at;
 					}),
 			);
 		}
@@ -116,7 +125,7 @@ export default function PlayerPerformancesList({
 						<PerformanceDisplay
 							key={perf.id}
 							elos={elos}
-							match={matches[perf.match]}
+							match={matchesMap[perf.match]}
 							i={i}
 							perf={perf}
 							players={players}
@@ -371,6 +380,12 @@ export function PerformanceDisplay({
 							priority={player.id}
 						/>
 					)}
+					{/* <span>
+						{Math.floor(
+							(new Date().getTime() - match.uploaded_at) / (1000 * 60 * 60 * 24),
+						)}
+						d
+					</span> */}
 				</div>
 			</PopoverTrigger>
 			<PopoverContent

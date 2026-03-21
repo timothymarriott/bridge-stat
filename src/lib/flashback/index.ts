@@ -46,6 +46,7 @@ export interface FlashbackMetadata {
 	uuid: string;
 	name: string;
 	version_string: string;
+	custom_flashback_version?: 1;
 	world_name?: string;
 	data_version: number;
 	protocol_version: number;
@@ -264,9 +265,17 @@ export const PacketParsers: Record<string, PacketParser | undefined> = {
 };
 
 export const ActionParsers: Record<string, PacketParser | undefined> = {
-	"flashback:action/next_tick": (flashback) => {
+	"flashback:action/next_tick": (flashback, reader) => {
 		flashback.tick += 1;
-		flashback.callbacks.onTick();
+		if (flashback.metadata?.custom_flashback_version != undefined) {
+			const time = reader.read_long();
+			if (flashback.tick == 1) {
+				flashback.start_time = Number(time);
+			}
+			flashback.callbacks.onTick(Number(time));
+		} else {
+			flashback.callbacks.onTick(flashback.start_time + flashback.tick * (1 / 20) * 1000);
+		}
 	},
 	"flashback:action/game_packet": async (flashback, reader) => {
 		const packet_id = reader.read_varint();
@@ -310,14 +319,14 @@ export default class Flashback {
 	matches: FullMatchInsertData[] = [];
 	current_match: MatchState | null = null;
 
-	date = 0;
+	start_time = 0;
 
 	could_be_bridge = false;
 	last_map: string | undefined = undefined;
 
 	callbacks: {
 		onChatMessage: (content: TextComponent) => void;
-		onTick: () => void;
+		onTick: (timestamp: number) => void;
 	} = {
 		onChatMessage: () => {
 			/* empty */
@@ -329,8 +338,8 @@ export default class Flashback {
 
 	zip: JSZip | null = null;
 
-	constructor(date: number) {
-		this.date = date;
+	constructor(time: number) {
+		this.start_time = time;
 	}
 
 	start_match(match: MatchState) {
@@ -366,7 +375,7 @@ export default class Flashback {
 				map: this.current_match.map ?? "Null",
 				red_players: red_players,
 				blue_players: blue_players,
-				date: this.date,
+				date: this.start_time,
 			};
 			this.matches.push(data);
 		}
@@ -410,6 +419,8 @@ export default class Flashback {
 		}
 
 		const chunks: string[] = Object.keys(this.metadata.chunks);
+
+		performance.mark(this.metadata.uuid + "_start");
 
 		for (const chunk_name of chunks) {
 			const chunk_file = zip.file(chunk_name);
@@ -485,6 +496,14 @@ export default class Flashback {
 				}
 			}
 		}
+
+		performance.mark(this.metadata.uuid + "_end");
+
+		performance.measure(
+			this.metadata.uuid,
+			this.metadata.uuid + "_start",
+			this.metadata.uuid + "_end",
+		);
 
 		return this.matches;
 	}

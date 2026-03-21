@@ -99,7 +99,7 @@ function User() {
 	useMemo(() => {
 		if (matches && player && player.exists) {
 			player.performances = [];
-			for (const match of Object.values(matches)) {
+			for (const match of matches) {
 				const perf = [...match.blue_players, ...match.red_players].find(
 					(p) => p.user == player.id,
 				);
@@ -130,7 +130,8 @@ function User() {
 			player.performances.map((perf) => {
 				if (perf.match == null) return null;
 
-				const match = matches[perf.match];
+				const match = matches.find((m) => m.id == perf.match);
+				if (!match) return null;
 
 				let red_scores = 0;
 				let blue_scores = 0;
@@ -168,7 +169,7 @@ function User() {
 	}
 
 	if (matches != null && players.length > 0 && elos == null) {
-		const elo = CalculateElos(players, Object.values(matches));
+		const elo = CalculateElos(players, matches);
 		setElos(elo);
 	}
 
@@ -413,7 +414,6 @@ function User() {
 											player={player}
 											elos={elos}
 											players={players}
-											matches={matches}
 										/>
 									) : (
 										<></>

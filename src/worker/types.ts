@@ -153,6 +153,19 @@ export enum Team {
 
 export type WorkerApp = typeof app;
 
-export interface MatchUploadRequestMetaData {
-	matches: FullMatchInsertData[];
+export interface MatchUploadMessage {
+	id: number;
+	match: FullMatchInsertData;
 }
+
+export type MatchUploadResponse = {
+	id: number;
+} & (
+	| {
+			success: false;
+			error: string;
+	  }
+	| {
+			success: true;
+	  }
+);

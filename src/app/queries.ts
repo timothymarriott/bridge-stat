@@ -47,31 +47,9 @@ export const adminUsersQuery = {
 	},
 };
 
-export async function FetchMatches() {
-	const res = await api_client.api.matches.$get();
-	if (!res.ok) return {};
-	const data = await res.json();
-
-	Object.keys(data).forEach((k) => {
-		let red_scores = 0;
-		data[k].red_players.forEach((p) => (red_scores += p.scores));
-		let blue_scores = 0;
-		data[k].blue_players.forEach((p) => (blue_scores += p.scores));
-
-		const updated: Match = {
-			...data[k],
-			red_scores: red_scores,
-			blue_scores: blue_scores,
-		};
-		data[k] = updated;
-	});
-
-	return data;
-}
-
 export const playersQuery = createQuery<{
 	players: OptionalPlayerInformation[];
-	matches: Record<string, Match> | null;
+	matches: Match[] | null;
 }>({
 	queryKey: ["players"],
 	staleTime: 60 * 1000,
@@ -84,25 +62,21 @@ export const playersQuery = createQuery<{
 			};
 		const rawmatches = await matchesres.json();
 
-		Object.keys(rawmatches).forEach((k) => {
+		rawmatches.forEach((match) => {
 			let red_scores = 0;
-			rawmatches[k].red_players.forEach((p) => (red_scores += p.scores));
+			match.red_players.forEach((p) => (red_scores += p.scores));
 			let blue_scores = 0;
-			rawmatches[k].blue_players.forEach((p) => (blue_scores += p.scores));
+			match.blue_players.forEach((p) => (blue_scores += p.scores));
 
 			const updated: Match = {
-				...rawmatches[k],
+				...match,
 				red_scores: red_scores,
 				blue_scores: blue_scores,
 			};
-			rawmatches[k] = updated;
+			match = updated;
 		});
-		const raw = Object.values(rawmatches);
-		const matches: Record<string, Match> = {};
-		raw.sort((a, b) => a.uploaded_at - b.uploaded_at);
-		raw.forEach((m) => {
-			matches[m.id] = m;
-		});
+		rawmatches.sort((a, b) => a.uploaded_at - b.uploaded_at);
+
 		const res = await api_client.api.player.list.$get();
 		if (!res.ok)
 			return {
@@ -113,7 +87,7 @@ export const playersQuery = createQuery<{
 
 		for (const player of data) {
 			if (player.exists)
-				for (const match of Object.values(matches)) {
+				for (const match of rawmatches) {
 					const perf = [...match.blue_players, ...match.red_players].find(
 						(p) => p.user == player.id,
 					);
@@ -121,7 +95,7 @@ export const playersQuery = createQuery<{
 				}
 		}
 
-		return { players: data, matches: matches };
+		return { players: data, matches: rawmatches };
 	},
 });
 

@@ -23,6 +23,7 @@ export function NativeProvider({ children }: { children: ReactNode }) {
 							for (const match of res) {
 								match.red_players.forEach((v) => {
 									v.username = v.username
+										.replace("trianglepoger1", "trianglepoger")
 										.replace("trianglepoger", "trianglepoger1")
 										.replace("JoeBartLover", "TheMoon021")
 										.replace("Jordano120", "Tetron_");
@@ -30,6 +31,7 @@ export function NativeProvider({ children }: { children: ReactNode }) {
 
 								match.blue_players.forEach((v) => {
 									v.username = v.username
+										.replace("trianglepoger1", "trianglepoger")
 										.replace("trianglepoger", "trianglepoger1")
 										.replace("JoeBartLover", "TheMoon021")
 										.replace("Jordano120", "Tetron_");
