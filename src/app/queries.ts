@@ -7,6 +7,7 @@ import type {
 } from "@/worker/types";
 import { hc } from "hono/client";
 import { createQuery } from "./auth-hooks";
+import { CalculateElos, EloInformation } from "@/lib/stats";
 
 export const api_client = hc<WorkerApp>(
 	import.meta.env.PROD
@@ -47,19 +48,17 @@ export const adminUsersQuery = {
 	},
 };
 
-export const playersQuery = createQuery<{
+export const dataQuery = createQuery<{
 	players: OptionalPlayerInformation[];
 	matches: Match[] | null;
+	elos: EloInformation | null;
 }>({
-	queryKey: ["players"],
-	staleTime: 60 * 1000,
+	queryKey: ["data"],
+	retry: false,
 	queryFn: async () => {
+		console.log("Fetching data...");
 		const matchesres = await api_client.api.matches.$get();
-		if (!matchesres.ok)
-			return {
-				players: [],
-				matches: null,
-			};
+		if (!matchesres.ok) throw new Error("Failed to fetch match data.");
 		const rawmatches = await matchesres.json();
 
 		rawmatches.forEach((match) => {
@@ -78,11 +77,7 @@ export const playersQuery = createQuery<{
 		rawmatches.sort((a, b) => a.uploaded_at - b.uploaded_at);
 
 		const res = await api_client.api.player.list.$get();
-		if (!res.ok)
-			return {
-				players: [],
-				matches: null,
-			};
+		if (!res.ok) throw new Error("Failed to fetch player list");
 		const data: OptionalPlayerInformation[] = await res.json();
 
 		for (const player of data) {
@@ -95,7 +90,16 @@ export const playersQuery = createQuery<{
 				}
 		}
 
-		return { players: data, matches: rawmatches };
+		console.log("Fetched");
+
+		return {
+			players: data,
+			matches: rawmatches,
+			elos: CalculateElos(
+				data.filter((p) => p.exists),
+				rawmatches,
+			),
+		};
 	},
 });
 

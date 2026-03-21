@@ -106,21 +106,13 @@ export async function UploadMatch(data: FullMatchInsertData, verified = false) {
 		throw new Error("Cannot upload duplicate match.");
 	}
 
-	const [match] = await db
-		.insert(matches)
-		.values({
-			...match_data,
-			verified: verified ? 1 : 0,
-		})
-		.returning();
-
 	const perfs: PlayerPerformanceInsertData[] = [];
 
 	for (const info of [...data.red_players, ...data.blue_players]) {
 		const player = players.find((p) => p.exists && p.username == info.username);
 		if (player && player.exists) {
 			perfs.push({
-				match: match.id,
+				match: -1,
 				user: player.id,
 				team: info.team,
 				kills: info.kills,
@@ -129,12 +121,20 @@ export async function UploadMatch(data: FullMatchInsertData, verified = false) {
 				scores: info.scores,
 			});
 		} else {
-			await db.delete(matches).where(eq(matches.id, match.id));
 			throw new Error("User " + info.username + " not found.");
 		}
 	}
 
+	const [match] = await db
+		.insert(matches)
+		.values({
+			...match_data,
+			verified: verified ? 1 : 0,
+		})
+		.returning();
+
 	for (const perf of perfs) {
+		perf.match = match.id;
 		await db.insert(user_performances).values(perf);
 	}
 }

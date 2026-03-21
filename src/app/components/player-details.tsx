@@ -4,8 +4,8 @@ import {
 	ChartTooltip,
 	ChartTooltipContent,
 } from "@/components/ui/chart";
-import { EloInformation, GetELO, MatchEloInformation } from "@/lib/stats";
-import { OptionalPlayerInformation, PlayerInformation } from "@/worker/types";
+import { EloInformation, GetConfidencePercentage, GetELO, MatchEloInformation } from "@/lib/stats";
+import { PlayerInformation } from "@/worker/types";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { Rating } from "ts-trueskill";
 import { MatchInfo } from "./match-info";
@@ -15,25 +15,24 @@ const eloChartConfig = {
 		label: "Elo",
 		color: "var(--chart-1)",
 	},
-	confidence: {
+	confidenceScaled: {
 		label: "Elo",
-		color: "var(--chart-2)",
+		color: "var(--color-red-400)",
 	},
 } satisfies ChartConfig;
 
 export default function PlayerDetails({
 	player,
 	elos,
-	players,
 }: {
 	player: PlayerInformation;
 	elos: EloInformation;
-	players: OptionalPlayerInformation[];
 }) {
-	const eloChartData: {
+	let eloChartData: {
 		date: number;
 		elo: number;
 		confidence: number;
+		confidenceScaled: number;
 		rating: Rating;
 		info: MatchEloInformation;
 	}[] = [];
@@ -45,15 +44,25 @@ export default function PlayerDetails({
 				(p) => p.user == player.id,
 			);
 			if (performance != undefined) {
+				const elo = GetELO(v.totals[player.id]);
 				eloChartData.push({
 					date: v.match.uploaded_at,
-					elo: GetELO(v.totals[player.id]),
-					confidence: v.totals[player.id].pi * 1500,
+					elo: elo,
+					confidence: GetConfidencePercentage(v.totals[player.id]),
+					confidenceScaled: 0,
 					rating: v.totals[player.id],
 					info: v,
 				});
 			}
 		});
+
+	const maxElo = Math.max(...eloChartData.map((d) => d.elo));
+	const minElo = Math.min(...eloChartData.map((d) => d.elo));
+
+	eloChartData = eloChartData.map((d) => ({
+		...d,
+		confidenceScaled: (d.confidence * (Math.abs(maxElo - minElo) * 3)) / 100, // scale 0–100% to 50% of Elo range
+	}));
 
 	return (
 		<>
@@ -67,15 +76,7 @@ export default function PlayerDetails({
 					}}
 				>
 					<CartesianGrid vertical={false} />
-					<XAxis
-						dataKey="date"
-						tickMargin={8}
-						tickCount={4}
-						tick={false}
-						tickFormatter={(d) =>
-							`${Math.floor((new Date().getTime() - (d as number)) / (1000 * 60 * 60 * 24)).toString()}d`
-						}
-					/>
+					<XAxis dataKey="date" tickMargin={8} tickCount={4} tick={false} />
 					<YAxis dataKey="elo" tickMargin={8} />
 					<ChartTooltip
 						cursor={true}
@@ -103,13 +104,7 @@ export default function PlayerDetails({
 										}
 
 										return (
-											<MatchInfo
-												players={players}
-												player={player}
-												eloInfo={payload.info}
-												match={match}
-												perf={perf}
-											/>
+											<MatchInfo player={player} match={match} perf={perf} />
 										);
 									}
 								}}
@@ -135,7 +130,7 @@ export default function PlayerDetails({
 						stackId="a"
 					/>
 					<Area
-						dataKey="confidence"
+						dataKey="confidenceScaled"
 						type="natural"
 						fill="url(#fillConfidence)"
 						fillOpacity={0.4}

@@ -1,21 +1,12 @@
-import {
-	Match,
-	OptionalPlayerInformation,
-	PlayerInformation,
-	PlayerPerformance,
-	SortMode,
-	Team,
-} from "@/worker/types";
-import { useQueryData } from "../auth-hooks";
-import { playersQuery } from "../queries";
+import { Match, PlayerInformation, PlayerPerformance, SortMode, Team } from "@/worker/types";
 import MinecraftAvatar from "./mc-avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalculateElos, EloInformation } from "@/lib/stats";
 import { useEffect, useMemo, useState } from "react";
 import { FilterState } from "../routes/player/$username";
 import React from "react";
 import { MatchInfo } from "./match-info";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useData } from "./data-hook";
 
 export default function PlayerPerformancesList({
 	player,
@@ -26,87 +17,78 @@ export default function PlayerPerformancesList({
 	sortMode: SortMode;
 	filterState: FilterState;
 }) {
-	const data = useQueryData(playersQuery, { players: [], matches: null });
-
+	const data = useData();
 	const matches = data.matches;
-	const matchesMap: Record<string, Match> = {};
-	data.matches?.forEach((m) => {
-		matchesMap[m.id] = m;
-	});
-	const players = data.players;
-
-	const [performances, setPerformances] = useState<PlayerPerformance[]>([]);
-
-	const [elos, setElos] = useState<EloInformation | null>(null);
-
-	if (data.matches != null && players.length > 0 && elos == null) {
-		const elo = CalculateElos(players, data.matches);
-
-		setElos(elo);
-	}
 
 	const STEP_COUNT = 5;
 
 	const [count, setCount] = useState(25);
+
+	const performances = useMemo<PlayerPerformance[]>(() => {
+		if (matches != null) {
+			return player.performances
+				.filter((a) => {
+					if (filterState.filterTeamCount) {
+						if (!a.match) return false;
+						const match = data.matchesMap[a.match];
+
+						const me_count =
+							a.team == Team.RED
+								? match.red_players.length
+								: match.blue_players.length;
+						const them_count =
+							a.team == Team.RED
+								? match.blue_players.length
+								: match.red_players.length;
+
+						return (
+							me_count == filterState.yourTeamCount &&
+							them_count == filterState.theirTeamCount
+						);
+					}
+
+					return true;
+				})
+				.sort((a, b) => {
+					if (!a.match) return a.id - b.id;
+					const amatch = data.matchesMap[a.match];
+
+					if (!b.match) return a.id - b.id;
+					const bmatch = data.matchesMap[b.match];
+					if (sortMode == SortMode.OldToNew) {
+						return amatch.uploaded_at - bmatch.uploaded_at;
+					}
+					return bmatch.uploaded_at - amatch.uploaded_at;
+				});
+		}
+		return [];
+	}, [player, filterState, matches, sortMode, data.matchesMap]);
+
+	useEffect(() => {
+		void (async () => {
+			await new Promise<void>((resolve) => {
+				setCount(0);
+				resolve();
+			});
+		})();
+	}, [player]);
 
 	useEffect(() => {
 		if (count >= performances.length) return;
 
 		const id = setTimeout(() => {
 			setCount((c) => c + STEP_COUNT);
-		}, 15);
+		}, 150);
 
 		return () => {
 			clearTimeout(id);
 		};
 	}, [count, performances.length]);
 
-	useMemo(() => {
-		if (matches != null) {
-			setCount(0);
-			setPerformances(
-				player.performances
-					.filter((a) => {
-						if (filterState.filterTeamCount) {
-							if (!a.match) return false;
-							const match = matchesMap[a.match];
-
-							const me_count =
-								a.team == Team.RED
-									? match.red_players.length
-									: match.blue_players.length;
-							const them_count =
-								a.team == Team.RED
-									? match.blue_players.length
-									: match.red_players.length;
-
-							return (
-								me_count == filterState.yourTeamCount &&
-								them_count == filterState.theirTeamCount
-							);
-						}
-
-						return true;
-					})
-					.sort((a, b) => {
-						if (!a.match) return a.id - b.id;
-						const amatch = matchesMap[a.match];
-
-						if (!b.match) return a.id - b.id;
-						const bmatch = matchesMap[b.match];
-						if (sortMode == SortMode.OldToNew) {
-							return amatch.uploaded_at - bmatch.uploaded_at;
-						}
-						return bmatch.uploaded_at - amatch.uploaded_at;
-					}),
-			);
-		}
-	}, [player, filterState, matches, sortMode]);
-
 	return (
 		<div className="space-y-1">
 			{matches != null &&
-				elos != null &&
+				data.elos != null &&
 				performances.length > 0 &&
 				performances.map((perf, i) => {
 					if (perf.match == null) return null;
@@ -124,11 +106,9 @@ export default function PlayerPerformancesList({
 					return (
 						<PerformanceDisplay
 							key={perf.id}
-							elos={elos}
-							match={matchesMap[perf.match]}
+							match={data.matchesMap[perf.match]}
 							i={i}
 							perf={perf}
-							players={players}
 						/>
 					);
 				})}
@@ -142,15 +122,14 @@ function TeamInfo({
 	team,
 	side,
 	match,
-	players,
 	priority,
 }: {
 	team: Team;
 	side: "left" | "right";
 	match: Match;
-	players: OptionalPlayerInformation[];
 	priority?: string;
 }) {
+	const data = useData();
 	const performances = team == Team.RED ? match.red_players : match.blue_players;
 	return (
 		<div
@@ -169,10 +148,10 @@ function TeamInfo({
 			>
 				{performances
 					.sort((a, b) => {
-						const a_p = players.find((p) => p.exists && p.id == a.user);
-						const b_p = players.find((p) => p.exists && p.id == b.user);
-						if (!a_p || !a_p.exists || !a_p.username) return 1;
-						if (!b_p || !b_p.exists || !b_p.username) return -1;
+						const a_p = data.players.find((p) => p.id == a.user);
+						const b_p = data.players.find((p) => p.id == b.user);
+						if (!a_p?.username) return 1;
+						if (!b_p?.username) return -1;
 
 						if (a_p.id == priority && b_p.id != priority) {
 							return -Infinity;
@@ -185,11 +164,10 @@ function TeamInfo({
 						return a_p.username.localeCompare(b_p.username);
 					})
 					.map((p, i) => {
-						const player = players.find((_p) => {
-							if (!_p.exists) return false;
+						const player = data.players.find((_p) => {
 							return _p.id == p.user;
 						});
-						if (!player?.exists) return null;
+						if (!player) return null;
 						return (
 							<MinecraftAvatar
 								key={i}
@@ -218,15 +196,12 @@ export function PerformanceDisplay({
 	perf,
 	i,
 	match,
-	elos,
-	players,
 }: {
 	match: Match;
 	perf: PlayerPerformance;
 	i: number;
-	players: OptionalPlayerInformation[];
-	elos: EloInformation;
 }) {
+	const data = useData();
 	const [hovered, setHovered] = useState<boolean>(false);
 	if (perf.match == null) return null;
 
@@ -243,9 +218,9 @@ export function PerformanceDisplay({
 
 	const winner: Team = red_scores > blue_scores ? Team.RED : Team.BLUE;
 
-	const player = players.find((p) => p.exists && p.id == perf.user);
+	const player = data.players.find((p) => p.id == perf.user);
 
-	if (!player || !player.exists || !perf.user) {
+	if (!player || !perf.user) {
 		return null;
 	}
 
@@ -257,11 +232,16 @@ export function PerformanceDisplay({
 						"justify-between grid grid-cols-[auto_1fr_auto] rounded-sm items-center hover:bg-accent cursor-pointer " +
 						(i % 2 == 0 ? "bg-sidebar-accent/40" : "")
 					}
+					onMouseEnter={() => {
+						setHovered(true);
+					}}
+					onMouseLeave={() => {
+						setHovered(false);
+					}}
 				>
 					{perf.team == Team.RED ? (
 						<TeamInfoComponent
 							match={match}
-							players={players}
 							team={Team.RED}
 							side="left"
 							priority={player.id}
@@ -269,7 +249,6 @@ export function PerformanceDisplay({
 					) : (
 						<TeamInfoComponent
 							match={match}
-							players={players}
 							team={Team.BLUE}
 							side="left"
 							priority={player.id}
@@ -308,54 +287,44 @@ export function PerformanceDisplay({
 							</span>
 						</div>
 						{winner == perf.team ? (
-							<span
-								onMouseEnter={() => {
-									setHovered(true);
-								}}
-								onMouseLeave={() => {
-									setHovered(false);
-								}}
-								className="text-green-400"
-							>
-								{hovered ? (
+							<span className="text-green-400">
+								{hovered && data.elos ? (
 									<span
 										className={
-											Math.floor(elos.matches[match.id].deltas[perf.user]) > 0
+											Math.floor(
+												data.elos.matches[match.id].deltas[perf.user],
+											) > 0
 												? "text-green-400"
 												: "text-red-400"
 										}
 									>
-										{Math.floor(elos.matches[match.id].deltas[perf.user]) > 0
+										{Math.floor(data.elos.matches[match.id].deltas[perf.user]) >
+										0
 											? "+"
 											: ""}
-										{Math.floor(elos.matches[match.id].deltas[perf.user])}
+										{Math.floor(data.elos.matches[match.id].deltas[perf.user])}
 									</span>
 								) : (
 									"Won"
 								)}
 							</span>
 						) : (
-							<span
-								onMouseEnter={() => {
-									setHovered(true);
-								}}
-								onMouseLeave={() => {
-									setHovered(false);
-								}}
-								className="text-red-400"
-							>
-								{hovered ? (
+							<span className="text-red-400">
+								{hovered && data.elos ? (
 									<span
 										className={
-											Math.floor(elos.matches[match.id].deltas[perf.user]) > 0
+											Math.floor(
+												data.elos.matches[match.id].deltas[perf.user],
+											) > 0
 												? "text-green-400"
 												: "text-red-400"
 										}
 									>
-										{Math.floor(elos.matches[match.id].deltas[perf.user]) > 0
+										{Math.floor(data.elos.matches[match.id].deltas[perf.user]) >
+										0
 											? "+"
 											: ""}
-										{Math.floor(elos.matches[match.id].deltas[perf.user])}
+										{Math.floor(data.elos.matches[match.id].deltas[perf.user])}
 									</span>
 								) : (
 									"Lost"
@@ -366,7 +335,6 @@ export function PerformanceDisplay({
 					{perf.team == Team.RED ? (
 						<TeamInfoComponent
 							match={match}
-							players={players}
 							team={Team.BLUE}
 							side="right"
 							priority={player.id}
@@ -374,7 +342,6 @@ export function PerformanceDisplay({
 					) : (
 						<TeamInfoComponent
 							match={match}
-							players={players}
 							team={Team.RED}
 							side="right"
 							priority={player.id}
@@ -394,13 +361,7 @@ export function PerformanceDisplay({
 				}}
 				className="w-max"
 			>
-				<MatchInfo
-					players={players}
-					match={match}
-					perf={perf}
-					eloInfo={elos.matches[match.id]}
-					player={player}
-				></MatchInfo>
+				<MatchInfo match={match} perf={perf} player={player}></MatchInfo>
 			</PopoverContent>
 		</Popover>
 	);

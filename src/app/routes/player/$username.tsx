@@ -1,8 +1,6 @@
-import { usePlayerInfo, useQueryData } from "@/app/auth-hooks";
 import MinecraftAvatar from "@/app/components/mc-avatar";
 import PlayerDetails from "@/app/components/player-details";
 import PlayerPerformancesList from "@/app/components/player-performances-list";
-import { playersQuery } from "@/app/queries";
 import { router } from "@/app/router";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,10 +26,10 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { CalculateElos, EloInformation } from "@/lib/stats";
-import { OptionalPlayerInformation, PlayerPerformance, SortMode, Team } from "@/worker/types";
+import { SortMode, Team } from "@/worker/types";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useData } from "@/app/components/data-hook";
 
 export const Route = createFileRoute("/player/$username")({
 	component: User,
@@ -75,40 +73,17 @@ function User() {
 	const [goalsPerGame, setGoalsPerGame] = useState<number>(0);
 	const [lossCount, setLossCount] = useState<number>(0);
 
-	const data = useQueryData(playersQuery);
+	const data = useData();
 
-	const matches = data?.matches ?? null;
-	const players = data?.players ?? [];
+	const matches = data.matches ?? null;
 
-	const user = usePlayerInfo(username);
-
-	const player: OptionalPlayerInformation | null = user;
-
-	const [performances, setPerformances] = useState<PlayerPerformance[]>([]);
-
-	if (player?.exists) {
-		player.performances = performances;
-	}
-
-	const [elos, setElos] = useState<EloInformation | null>(null);
+	const player = data.usePlayerData(username);
 
 	const [loading, setLoading] = useState<boolean>(false);
 
 	const [calced, setCalced] = useState<string | null>(null);
 
 	useMemo(() => {
-		if (matches && player && player.exists) {
-			player.performances = [];
-			for (const match of matches) {
-				const perf = [...match.blue_players, ...match.red_players].find(
-					(p) => p.user == player.id,
-				);
-				if (perf != undefined) player.performances.push(perf);
-			}
-
-			setPerformances(player.performances);
-		}
-
 		if (player && player.exists && calced != player.id && matches) {
 			setCalced(player.id);
 			let total_kills = 0;
@@ -166,11 +141,6 @@ function User() {
 
 	if (player != null && matches != null && player.exists && loading) {
 		setLoading(false);
-	}
-
-	if (matches != null && players.length > 0 && elos == null) {
-		const elo = CalculateElos(players, matches);
-		setElos(elo);
 	}
 
 	const [sortMode, setSortMode] = useState<SortMode>(SortMode.NewToOld);
@@ -409,12 +379,8 @@ function User() {
 							</CardHeader>
 							<CardContent className="flex-1 min-h-0 px-1">
 								<ScrollArea className="h-full px-3">
-									{elos != null ? (
-										<PlayerDetails
-											player={player}
-											elos={elos}
-											players={players}
-										/>
+									{data.elos != null ? (
+										<PlayerDetails player={player} elos={data.elos} />
 									) : (
 										<></>
 									)}

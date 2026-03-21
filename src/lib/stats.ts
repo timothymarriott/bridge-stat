@@ -1,4 +1,4 @@
-import { Match, OptionalPlayerInformation } from "@/worker/types";
+import { Match, PlayerInformation } from "@/worker/types";
 import { rate, Rating } from "ts-trueskill";
 
 export interface MatchEloInformation {
@@ -13,20 +13,39 @@ export interface EloInformation {
 	matches: Record<string, MatchEloInformation>;
 }
 
+export function GetConfidencePercentage(rating: Rating) {
+	const confidence = GetConfidence(rating);
+	const range = Math.abs(confidence.max - confidence.min);
+	if (range === 0) return 100;
+	const percent = Math.max(0, 100 - (range / GetELO(rating)) * 100);
+	return percent;
+}
+
+export function GetConfidence(rating: Rating): {
+	max: number;
+	min: number;
+} {
+	const k = 2;
+	const min = rating.mu - k * rating.sigma;
+	const max = rating.mu + k * rating.sigma;
+
+	return {
+		min: Math.max(0, min * 100 - 1000),
+		max: Math.max(0, max * 100 - 1000),
+	};
+}
+
 export function GetELO(score: Rating) {
 	return score.mu * 100 - 1000;
 }
 
-export function CalculateElos(
-	players: OptionalPlayerInformation[],
-	matches: Match[],
-): EloInformation {
+export function CalculateElos(players: PlayerInformation[], matches: Match[]): EloInformation {
 	const ratings: Record<string, Rating> = {};
 
 	const counts: Record<string, number> = {};
 
 	for (const p of players) {
-		if (p.exists) ratings[p.id] = new Rating();
+		ratings[p.id] = new Rating();
 	}
 
 	const deltas: Record<string, MatchEloInformation> = {};
@@ -65,6 +84,7 @@ export function CalculateElos(
 		}
 
 		if (redTeam.length == 0 || blueTeam.length == 0) {
+			console.error("Empty Team");
 			continue;
 		}
 

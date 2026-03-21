@@ -10,33 +10,17 @@ import {
 import { SidebarUser } from "./sidebar-user";
 import { HomeIcon } from "lucide-react";
 import { router } from "@/app/router";
-import { playersQuery } from "@/app/queries";
 import MinecraftAvatar from "../mc-avatar";
-import { useQueryData } from "@/app/auth-hooks";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
-import { CalculateElos, EloInformation, GetELO } from "@/lib/stats";
-import { useState } from "react";
+import { GetELO } from "@/lib/stats";
+
+import { useData } from "../data-hook";
 
 export function LayoutSidebar() {
-	const data = useQueryData(playersQuery, {
-		players: [],
-		matches: null,
-	});
-	// Hide players that have no recorded match performances.
-	// Previously they were rendered but `disabled`, which made them appear grayed out.
+	const data = useData();
 	const player_list =
-		data.players.length == 0
-			? null
-			: data.players.filter((p) => p.exists && p.performances.length > 0);
-	const matches = data.matches;
-
-	const [elos, setElos] = useState<EloInformation | null>(null);
-
-	if (player_list != null && matches != null && elos == null) {
-		const vs = CalculateElos(player_list, matches);
-		setElos(vs);
-	}
+		data.players.length == 0 ? null : data.players.filter((p) => p.performances.length > 0);
 
 	return (
 		<Sidebar collapsible="icon" variant="floating">
@@ -46,19 +30,21 @@ export function LayoutSidebar() {
 					{player_list != null ? (
 						player_list
 							.sort((a, b) => {
-								if (!a.exists || !b.exists) return 0;
-								if (elos == null) return 0;
-								if (elos.counts[a.id] == undefined) return Infinity;
-								if (elos.counts[b.id] == undefined) return -Infinity;
-								return elos.finalScores[b.id].mu - elos.finalScores[a.id].mu;
+								if (data.elos == null) return 0;
+								if (data.elos.counts[a.id] == undefined) return Infinity;
+								if (data.elos.counts[b.id] == undefined) return -Infinity;
+								return (
+									data.elos.finalScores[b.id].mu - data.elos.finalScores[a.id].mu
+								);
 							})
 							.map((player) => {
-								if (!player.exists) return null;
 								return (
 									<SidebarMenuButton
 										key={player.id}
 										disabled={
-											elos ? elos.counts[player.id] == undefined : false
+											data.elos
+												? data.elos.counts[player.id] == undefined
+												: false
 										}
 										onClick={() => {
 											void router.navigate({
@@ -70,10 +56,10 @@ export function LayoutSidebar() {
 										<MinecraftAvatar size="size-6" uuid={player.uuid} />
 										<div className="w-full justify-between flex flex-row">
 											<span>{player.username}</span>
-											{elos?.finalScores[player.id] != undefined ? (
+											{data.elos?.finalScores[player.id] != undefined ? (
 												<span className="text-accent-foreground">
 													{Math.floor(
-														GetELO(elos.finalScores[player.id]),
+														GetELO(data.elos.finalScores[player.id]),
 													).toString()}
 												</span>
 											) : null}

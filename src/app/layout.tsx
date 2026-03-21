@@ -3,20 +3,23 @@ import { LayoutSidebar } from "./components/layout/sidebar";
 
 import AccountIntroDialog from "./components/account-intro-dialog";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { DataProvider } from "./components/data-context";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
 	return (
 		<div className="[--header-height:calc(--spacing(14))]">
 			<TooltipProvider>
-				<SidebarProvider className="flex flex-col">
-					<div className="flex flex-1">
-						<LayoutSidebar />
+				<DataProvider>
+					<SidebarProvider className="flex flex-col">
+						<div className="flex flex-1">
+							<LayoutSidebar />
 
-						<SidebarInset className={"p-2 h-screen pl-0"}>{children}</SidebarInset>
+							<SidebarInset className={"p-2 h-screen pl-0"}>{children}</SidebarInset>
 
-						<AccountIntroDialog />
-					</div>
-				</SidebarProvider>
+							<AccountIntroDialog />
+						</div>
+					</SidebarProvider>
+				</DataProvider>
 			</TooltipProvider>
 		</div>
 	);
