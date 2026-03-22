@@ -142,7 +142,6 @@ export default function PlayerDetails({
 			<span className="text-accent-foreground/50">
 				This is the players rating according to the TrueSkill2 system. <br /> The numeric
 				value is calculated via this formula x = μ * 100 + 1000.
-				<br /> The confidence is π treated as a percentage.
 			</span>
 		</>
 	);
