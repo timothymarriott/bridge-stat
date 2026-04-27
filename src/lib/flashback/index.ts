@@ -112,11 +112,31 @@ export type TextComponent = {
 	  }
 );
 
+export function TextComponentToString(component: TextComponent): string {
+	let res = "";
+
+	if (component.text != undefined) {
+		res = component.text;
+	}
+
+	if (component.extra != undefined) {
+		component.extra.forEach((e) => {
+			res += TextComponentToString(e);
+		});
+	}
+
+	return res;
+}
+
 export type PacketParser = (flashback: Flashback, reader: ByteReader) => Promise<void> | void;
 
 export const PacketParsers: Record<string, PacketParser | undefined> = {
 	"minecraft:system_chat": (flashback, reader) => {
 		const content = reader.read_nbt() as TextComponent;
+
+		if (JSON.stringify(content).includes("scored")) {
+			console.log(content);
+		}
 
 		if (content.extra) {
 			if (flashback.reading_winners && flashback.current_match != null) {
@@ -126,8 +146,11 @@ export const PacketParsers: Record<string, PacketParser | undefined> = {
 				for (const element of content.extra) {
 					if (element.click_event && element.text) {
 						flashback.ensure_player(element.text.trim());
+						if (flashback.current_match.winner == null) {
+							throw new Error("Unable to detect winner");
+						}
 						flashback.current_match.players[element.text.trim()].team =
-							flashback.current_match.winner == "Red" ? Team.RED : Team.BLUE;
+							flashback.current_match.winner;
 						winners.push(element.text.trim());
 					}
 				}
@@ -140,21 +163,29 @@ export const PacketParsers: Record<string, PacketParser | undefined> = {
 				for (const element of content.extra) {
 					if (element.click_event && element.text) {
 						flashback.ensure_player(element.text.trim());
+						//flashback.current_match.players[element.text.trim()].team =
+						//	flashback.current_match.winner == "Red" ? Team.BLUE : Team.RED;
+						if (flashback.current_match.winner == null) {
+							throw new Error("Unable to detect winner");
+						}
 						flashback.current_match.players[element.text.trim()].team =
-							flashback.current_match.winner == "Red" ? Team.BLUE : Team.RED;
+							flashback.current_match.winner == Team.RED ? Team.BLUE : Team.RED;
 						losers.push(element.text.trim());
 					}
 				}
+				//00000475-00000000-00005058-92957ac245e9b3755941a8c93839b20f
 			}
 
 			if (content.extra.length >= 1) {
 				if (content.extra[0]?.text) {
 					if (content.extra[0].text == " Losers:") {
+						console.log("What");
 						flashback.reading_losers = true;
 					}
 					if (content.extra[0].text == " Winners:") {
 						flashback.reading_winners = true;
 					}
+
 					/*
 					if (content.extra[0].text == "Bridge Duel") {
 						flashback.start_match({
@@ -175,16 +206,22 @@ export const PacketParsers: Record<string, PacketParser | undefined> = {
 					flashback.could_be_bridge = true;
 				}
 
-				if (content.extra[0].text == "Bridge" && flashback.could_be_bridge) {
+				if (
+					(content.extra[0].text == "Bridge" ||
+						(content.extra.length > 1 && content.extra[1].text == "Bridge Duel")) &&
+					flashback.could_be_bridge
+				) {
 					flashback.could_be_bridge = false;
 					//console.log("Detected Party Split Game");
 					//000002bf-00000000-00005031-1f3262844d54bc350717a2fea393669c
+					console.log("Started match");
 					flashback.start_match({
 						start_tick: flashback.tick,
 						end_tick: -1,
+						time: -1,
 						map: flashback.last_map,
 						players: {},
-						winner: "Blue",
+						winner: null,
 					});
 				}
 			}
@@ -193,6 +230,18 @@ export const PacketParsers: Record<string, PacketParser | undefined> = {
 				if (content.extra[1]?.text) {
 					if (content.extra[1].text == " forfeited.") {
 						flashback.current_match = null;
+					}
+				}
+			}
+
+			if (content.extra.length >= 10) {
+				if (content.extra[9].text == " scored!" && content.extra[8].text) {
+					const plr = content.extra[8].text.trim();
+					if (flashback.current_match) {
+						flashback.current_match.winner =
+							content.extra[8].color?.toLowerCase() == "red" ? Team.RED : Team.BLUE;
+						flashback.ensure_player(plr);
+						flashback.current_match.players[plr].scores += 1;
 					}
 				}
 			}
@@ -207,7 +256,8 @@ export const PacketParsers: Record<string, PacketParser | undefined> = {
 				) {
 					const plr = content.extra[0].text.trim();
 					if (flashback.current_match) {
-						flashback.current_match.winner = content.extra[0].color as "Red" | "Blue";
+						flashback.current_match.winner =
+							content.extra[0].color.toLowerCase() == "Red" ? Team.RED : Team.BLUE;
 						flashback.ensure_player(plr);
 						flashback.current_match.players[plr].scores += 1;
 					}
@@ -273,9 +323,10 @@ export const ActionParsers: Record<string, PacketParser | undefined> = {
 			if (flashback.tick == 1) {
 				flashback.start_time = Number(time);
 			}
+			flashback.last_time = Number(time);
 			flashback.callbacks.onTick(Number(time));
 		} else {
-			flashback.callbacks.onTick(flashback.start_time + flashback.tick * (1 / 20) * 1000);
+			flashback.callbacks.onTick(-1);
 		}
 	},
 	"flashback:action/game_packet": async (flashback, reader) => {
@@ -293,9 +344,10 @@ export const ActionParsers: Record<string, PacketParser | undefined> = {
 export interface MatchState {
 	start_tick: number;
 	end_tick: number;
+	time: number;
 	players: Record<string, MatchPlayerInsertData>;
 	map: string | undefined;
-	winner: "Red" | "Blue";
+	winner: Team | null;
 }
 
 export interface Chunk {
@@ -321,6 +373,8 @@ export default class Flashback {
 	current_match: MatchState | null = null;
 
 	start_time = 0;
+
+	last_time = 0;
 
 	could_be_bridge = false;
 	last_map: string | undefined = undefined;
@@ -355,7 +409,7 @@ export default class Flashback {
 		if (this.current_match) {
 			this.current_match.players[name] ??= {
 				username: name,
-				team: Team.BLUE,
+				team: Team.INVALID,
 				deaths: 0,
 				scores: 0,
 				kills: 0,
@@ -380,7 +434,7 @@ export default class Flashback {
 				map: this.current_match.map ?? "Null",
 				red_players: red_players,
 				blue_players: blue_players,
-				date: this.start_time,
+				date: this.last_time,
 			};
 			this.matches.push(data);
 			await this.callbacks.onMatch(data);
@@ -421,6 +475,13 @@ export default class Flashback {
 		) {
 			throw new Error(
 				`Unsupported flashback or game version. Please use ${SUPPORTED_VERSION_STRING}`,
+			);
+		}
+
+		console.log(this.metadata);
+		if (this.metadata.custom_flashback_version == undefined) {
+			throw new Error(
+				`Unsupported flashback version. You must use the modified version of flashback.`,
 			);
 		}
 

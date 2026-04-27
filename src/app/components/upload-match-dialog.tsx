@@ -46,6 +46,37 @@ function getFileTimestamp(file: File): number {
 	return file.lastModified;
 }
 
+function uploadWithProgress(
+	url: string,
+	file: File,
+	onProgress: (percent: number, loaded: number, total: number) => void,
+): Promise<void> {
+	return new Promise((resolve, reject) => {
+		const xhr = new XMLHttpRequest();
+
+		xhr.open("PUT", url);
+
+		xhr.upload.onprogress = (event) => {
+			if (event.lengthComputable) {
+				const percent = event.loaded / event.total;
+				onProgress(percent, event.loaded, event.total);
+			}
+		};
+
+		xhr.onload = () => {
+			if (xhr.status >= 200 && xhr.status < 300) {
+				resolve();
+			} else {
+				reject(new Error(`Upload failed: ${xhr.status.toString()}`));
+			}
+		};
+
+		xhr.onerror = reject;
+
+		xhr.send(file);
+	});
+}
+
 export default function UploadMatchDialog({ children }: { children: ReactNode }) {
 	const data = useData();
 	const inputRef = useRef<HTMLInputElement>(null);
@@ -55,10 +86,17 @@ export default function UploadMatchDialog({ children }: { children: ReactNode })
 	const [isUploading, setIsUploading] = useState<boolean>(false);
 
 	const [isParsing, setIsParsing] = useState<boolean>(false);
+	const [errors, setErrors] = useState<
+		{
+			name: string;
+			error: string;
+		}[]
+	>([]);
 	const [progressInfo, setProgressInfo] = useState<
 		{
 			name: string;
 			progress: number;
+			uploadProgress: number;
 		}[]
 	>([]);
 
@@ -66,6 +104,13 @@ export default function UploadMatchDialog({ children }: { children: ReactNode })
 		if (progressInfo.length === 0) return 0;
 
 		const total = progressInfo.reduce((sum, item) => sum + item.progress, 0);
+		return total / progressInfo.length;
+	})();
+
+	const uploadingProgress = (() => {
+		if (progressInfo.length === 0) return 0;
+
+		const total = progressInfo.reduce((sum, item) => sum + item.uploadProgress, 0);
 		return total / progressInfo.length;
 	})();
 
@@ -80,31 +125,44 @@ export default function UploadMatchDialog({ children }: { children: ReactNode })
 				<DialogHeader>
 					<DialogTitle>Upload Matches</DialogTitle>
 				</DialogHeader>
-				<ScrollArea className="h-72 p-2 rounded-sm">
-					<div className="space-y-1 flex flex-col">
-						{matchPreviews.map((m, i) => {
-							return <PerformanceDisplay match={m} i={i}></PerformanceDisplay>;
-						})}
-					</div>
-				</ScrollArea>
+				{isParsing || isUploading || matchesToUpload.length > 0 ? (
+					<ScrollArea className="h-72 p-2 rounded-sm">
+						<div className="space-y-1 flex flex-col">
+							{matchPreviews.map((m, i) => {
+								return <PerformanceDisplay match={m} i={i}></PerformanceDisplay>;
+							})}
+						</div>
+					</ScrollArea>
+				) : null}
 				{isUploading || isParsing ? (
 					isUploading ? (
 						<div>Uploading...</div>
 					) : isParsing ? (
 						<div className="flex flex-col space-y-2">
 							<span>Parsing...</span>
-							<span>{(parsingProgress * 100).toFixed(1)}%</span>
-							<Progress value={parsingProgress * 100} />
+
+							<div className="flex flex-row">
+								<span>{(parsingProgress * 100).toFixed(1)}%</span>
+								<Progress value={parsingProgress * 100} />
+							</div>
+							<div className="flex flex-row">
+								<span>{(uploadingProgress * 100).toFixed(1)}%</span>
+								<Progress value={uploadingProgress * 100} />
+							</div>
 							<ScrollArea className="h-72 bg-secondary/80 p-2 rounded-sm">
-								<div className="grid grid-cols-2">
+								<div className="grid grid-cols-3">
 									{progressInfo.map((p) => {
-										if (p.progress == 1) return null;
+										if (p.progress == 1 && p.uploadProgress == 1) return null;
 										return (
 											<>
 												<span key={p.name + "_name"}>{p.name}</span>
 												<Progress
 													key={p.name + "_prog"}
 													value={p.progress * 100}
+												></Progress>
+												<Progress
+													key={p.name + "_upload"}
+													value={p.uploadProgress * 100}
 												></Progress>
 											</>
 										);
@@ -117,7 +175,6 @@ export default function UploadMatchDialog({ children }: { children: ReactNode })
 					)
 				) : (
 					<>
-						{/* //00000375-00000000-00005035-99f099f64a8bf012f70678156ee18dcb RESTORE POINT FOR OLD DATA */}
 						{matchesToUpload.length == 0 ? (
 							<Field>
 								<FieldLabel htmlFor={"file"}>File</FieldLabel>
@@ -131,6 +188,25 @@ export default function UploadMatchDialog({ children }: { children: ReactNode })
 									autoComplete="off"
 								/>
 							</Field>
+						) : null}
+						{errors.length > 0 ? (
+							<ScrollArea className="h-72 bg-secondary/80 p-2 rounded-sm">
+								<div className="grid grid-cols-2">
+									{errors.map((p) => {
+										return (
+											<>
+												<span key={p.name + "_name"}>{p.name}</span>
+												<span
+													key={p.name + "_error"}
+													className="text-red-400"
+												>
+													{p.error}
+												</span>
+											</>
+										);
+									})}
+								</div>
+							</ScrollArea>
 						) : null}
 						<DialogFooter>
 							{matchesToUpload.length > 0 ? (
@@ -221,6 +297,7 @@ export default function UploadMatchDialog({ children }: { children: ReactNode })
 												setIsParsing(true);
 												setProgressInfo([]);
 												setMatchPreviews([]);
+												setErrors([]);
 												if (
 													inputRef.current?.files &&
 													inputRef.current.files.length > 0
@@ -240,6 +317,11 @@ export default function UploadMatchDialog({ children }: { children: ReactNode })
 																getFileTimestamp(file),
 															);
 
+															const res =
+																await api_client.api.upload.request.$get();
+
+															const uploadData = await res.json();
+
 															setProgressInfo((orig) =>
 																[
 																	...orig.filter(
@@ -248,6 +330,50 @@ export default function UploadMatchDialog({ children }: { children: ReactNode })
 																	{
 																		name: file.name,
 																		progress: 0,
+																		uploadProgress: 0,
+																	},
+																].sort((a, b) =>
+																	a.name.localeCompare(b.name),
+																),
+															);
+
+															if (uploadData.authenticated) {
+																await uploadWithProgress(
+																	uploadData.url,
+																	file,
+																	(progress) => {
+																		setProgressInfo((orig) =>
+																			[
+																				...orig.filter(
+																					(a) =>
+																						a.name !=
+																						file.name,
+																				),
+																				{
+																					name: file.name,
+																					progress: 0,
+																					uploadProgress:
+																						progress,
+																				},
+																			].sort((a, b) =>
+																				a.name.localeCompare(
+																					b.name,
+																				),
+																			),
+																		);
+																	},
+																);
+															}
+
+															setProgressInfo((orig) =>
+																[
+																	...orig.filter(
+																		(a) => a.name != file.name,
+																	),
+																	{
+																		name: file.name,
+																		progress: 0,
+																		uploadProgress: 1,
 																	},
 																].sort((a, b) =>
 																	a.name.localeCompare(b.name),
@@ -270,6 +396,7 @@ export default function UploadMatchDialog({ children }: { children: ReactNode })
 																							.metadata
 																							.total_ticks
 																					: 0,
+																			uploadProgress: 1,
 																		},
 																	].sort((a, b) =>
 																		a.name.localeCompare(
@@ -322,10 +449,11 @@ export default function UploadMatchDialog({ children }: { children: ReactNode })
 																		);
 																});
 
-																setMatchesToUpload((orig) => [
-																	...orig,
-																	match,
-																]);
+																setMatchesToUpload((orig) =>
+																	[...orig, match].sort(
+																		(a, b) => a.date - b.date,
+																	),
+																);
 
 																const preview =
 																	await GetMatchPreview(
@@ -339,9 +467,39 @@ export default function UploadMatchDialog({ children }: { children: ReactNode })
 																]);
 															};
 
-															await flashback.findGames(
-																await file.bytes(),
-															);
+															try {
+																await flashback.findGames(
+																	await file.bytes(),
+																);
+															} catch (e) {
+																if (e instanceof Error) {
+																	setErrors((orig) => [
+																		...orig,
+																		{
+																			name: file.name,
+																			error: e.message,
+																		},
+																	]);
+																	setProgressInfo((orig) =>
+																		[
+																			...orig.filter(
+																				(a) =>
+																					a.name !=
+																					file.name,
+																			),
+																			{
+																				name: file.name,
+																				progress: 1,
+																				uploadProgress: 1,
+																			},
+																		].sort((a, b) =>
+																			a.name.localeCompare(
+																				b.name,
+																			),
+																		),
+																	);
+																}
+															}
 
 															setProgressInfo((orig) =>
 																[
@@ -351,6 +509,7 @@ export default function UploadMatchDialog({ children }: { children: ReactNode })
 																	{
 																		name: file.name,
 																		progress: 1,
+																		uploadProgress: 1,
 																	},
 																].sort((a, b) =>
 																	a.name.localeCompare(b.name),

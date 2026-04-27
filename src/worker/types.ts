@@ -131,6 +131,16 @@ export type UserList = Record<string, UserInformation>;
 
 export type LinkRequestList = LinkRequestInfo[];
 
+export type UploadResponse =
+	| {
+			authenticated: true;
+			url: string;
+			key: string;
+	  }
+	| {
+			authenticated: false;
+	  };
+
 export type OptionalUserInformation =
 	| ({
 			exists: true;
@@ -156,6 +166,7 @@ export interface MCProfileInfo {
 export enum Team {
 	BLUE = 0,
 	RED = 1,
+	INVALID = -1,
 }
 
 export type WorkerApp = typeof app;

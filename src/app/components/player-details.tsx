@@ -131,7 +131,7 @@ export default function PlayerDetails({
 					/>
 					<Area
 						dataKey="confidenceScaled"
-						type="natural"
+						type="linear"
 						fill="url(#fillConfidence)"
 						fillOpacity={0.4}
 						stroke="var(--chart-3)"

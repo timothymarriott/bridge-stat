@@ -22,6 +22,7 @@
         "@tanstack/react-router": "^1.162.1",
         "@tanstack/react-router-devtools": "^1.162.1",
         "@tanstack/react-table": "^8.21.3",
+        "aws4fetch": "^1.0.20",
         "better-auth": "^1.4.18",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",

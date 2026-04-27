@@ -1,18 +1,61 @@
-import { Hono } from "hono";
+import { Hono, TypedResponse } from "hono";
 import { better_auth } from "../better_auth";
 import { RequireAuthInformation } from "..";
-import { MatchUploadMessage, MatchUploadResponse } from "../types";
+import { MatchUploadMessage, MatchUploadResponse, UploadResponse } from "../types";
 import { UploadMatch } from "../requests";
 import { upgradeWebSocket } from "hono/cloudflare-workers";
+import { AwsClient } from "aws4fetch";
 
 export const upload = new Hono<{
-	Bindings: Cloudflare.Env;
+	Bindings: Env;
 	Variables: {
 		user: typeof better_auth.$Infer.Session.user | null;
 		session: typeof better_auth.$Infer.Session.session | null;
 	};
 }>()
 	.use("*", RequireAuthInformation)
+	.get<"/request", object, TypedResponse<UploadResponse>>("/request", async (c) => {
+		const user = c.get("user");
+
+		if (!user)
+			return c.json<UploadResponse>(
+				{
+					authenticated: false,
+				},
+				403,
+			);
+
+		const client = new AwsClient({
+			accessKeyId: c.env.RUSTFS_ACCESS_KEY,
+			secretAccessKey: c.env.RUSTFS_SECRET_KEY,
+			service: "s3",
+			region: "auto",
+		});
+
+		const fileId = crypto.randomUUID();
+		const key = `${user.name}/${fileId}.zip`;
+
+		const url = new URL(`https://bridgefs.toysdownunder.com/replays/${key}`);
+
+		const signed = await client.sign(url.toString(), {
+			method: "PUT",
+			headers: {
+				"content-type": "application/octet-stream",
+			},
+			aws: {
+				signQuery: true,
+			},
+		});
+
+		return c.json<UploadResponse>(
+			{
+				authenticated: true,
+				url: signed.url,
+				key,
+			},
+			200,
+		);
+	})
 	.get(
 		"/match",
 		upgradeWebSocket(() => {
